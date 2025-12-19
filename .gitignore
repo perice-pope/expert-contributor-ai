@@ -1,0 +1,21 @@
+# OS files
+__MACOSX/
+.DS_Store
+
+# Jobs output (generated files)
+jobs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv/
+venv/
+
