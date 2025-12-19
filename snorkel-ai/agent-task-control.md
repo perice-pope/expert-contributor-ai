@@ -140,7 +140,87 @@ harbor run --agent oracle --path harbor_tasks/<task-name>
 harbor run -a terminus-2 -m openai/@openai-tbench/gpt-5 -p harbor_tasks/<task-name>
 ```
 
-## Step 11: Create ZIP File
+## Step 11: Pre-Submission Checklist
+
+**⚠️ CRITICAL: Verify these before creating your ZIP file to avoid CI build failures:**
+
+### 1. Validate `task.toml` Configuration
+- ✅ **Category must be valid**: Check that `category` in `task.toml` is one of:
+  - `build-and-dependency-management`
+  - `data-processing`
+  - `debugging`
+  - `games`
+  - `machine-learning`
+  - `scientific-computing`
+  - `security`
+  - `software-engineering`
+  - `system-administration`
+  
+  ❌ **Invalid examples**: `devops`, `cloud`, `infrastructure`, etc.
+
+- ✅ **Difficulty must be valid**: `easy`, `medium`, or `hard`
+
+### 2. Validate `tests/test.sh`
+- ✅ **pytest must include `-rA` flag**: The test script must use `pytest -rA` (not just `pytest` or `pytest -q`)
+  
+  ✅ **Correct format:**
+  ```bash
+  python3 -m pytest -q -rA /tests/test_outputs.py
+  ```
+  
+  ❌ **Will fail:**
+  ```bash
+  python3 -m pytest -q /tests/test_outputs.py  # Missing -rA
+  ```
+
+### 3. Clean Up Before Zipping
+- ✅ **Exclude `__MACOSX/` folder**: macOS creates this metadata folder when zipping. It causes UTF-8 encoding errors in CI.
+- ✅ **Exclude `jobs/` folder**: This contains runtime artifacts and should not be submitted.
+- ✅ **Exclude hidden files**: `.DS_Store`, `.git/`, etc.
+
+### 4. Verify File Structure
+- ✅ **`task.toml` must be at root** of the zip (not nested in a subfolder)
+- ✅ **`tests/test.sh` must exist** at `tests/test.sh` relative to root
+- ✅ **All required files present**: `instruction.md`, `task.toml`, `solution/solve.sh`, `tests/test.sh`, `environment/Dockerfile`
+
+### 5. Create ZIP from Task Directory
+**Important**: Zip the contents of your task folder, NOT the folder itself.
+
+**✅ Correct approach (Linux):**
+```bash
+cd snorkel-ai/your-task-name
+zip -r submission.zip . -x "jobs/*" -x "__MACOSX/*" -x ".*" -x "NOTES.md"
+```
+
+**✅ Correct approach (macOS - manual):**
+1. Open your task folder in Finder
+2. Select all files (Cmd+A)
+3. Right-click → Compress Items
+4. **Verify** the zip contains files at root level (not nested in a folder)
+
+**❌ Incorrect**: Zipping the parent folder or including nested task folder structure
+
+### 6. Verify ZIP Contents
+Before submitting, verify your zip structure:
+```bash
+unzip -l submission.zip | head -20
+```
+
+Should show:
+```
+task.toml          # at root ✓
+instruction.md     # at root ✓
+tests/test.sh      # correct path ✓
+solution/solve.sh  # correct path ✓
+```
+
+Should NOT show:
+```
+your-task-name/task.toml  # nested - WRONG ❌
+__MACOSX/...              # metadata - WRONG ❌
+```
+
+## Step 12: Create ZIP File
 - Select individual files inside your task folder (not the folder itself).
 
 ```
@@ -157,4 +237,4 @@ my-task/
     └── [test files]
 ```
 
-On macOS: open the task folder, select all files (Cmd+A), right-click → Compress.
+On macOS: open the task folder, select all files (Cmd+A), right-click → Compress. **Then verify the zip contents before submitting.**
