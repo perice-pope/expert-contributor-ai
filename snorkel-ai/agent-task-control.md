@@ -101,6 +101,8 @@ Fix issues until this passes.
 
 ## Step 8: Test with Real Agents
 
+### Option A: Using Portkey (TerminalBench Models)
+
 ```bash (check .env)
 export OPENAI_API_KEY=<your-portkey-api-key>
 export OPENAI_BASE_URL=https://api.portkey.ai/v1
@@ -112,16 +114,66 @@ harbor run -a terminus-2 -m openai/@openai-tbench/gpt-5 -p harbor_tasks/<task-na
 harbor run -a terminus-2 -m openai/@anthropic-tbench/claude-sonnet-4-5-20250929 -p harbor_tasks/<task-name>
 ```
 
+### Option B: Using Direct APIs (Standard Models)
+
+**Note:** The `@openai-tbench/` and `@anthropic-tbench/` model identifiers are TerminalBench-specific and require Portkey. For direct API testing, use standard model names that LiteLLM recognizes.
+
+```bash
+cd snorkel-ai
+
+# If .env holds direct API keys, load once:
+set -a; source .env; set +a
+
+# OpenAI (GPT-4o or GPT-4 Turbo)
+export OPENAI_API_KEY=<your-openai-api-key>
+harbor run -a terminus-2 -m gpt-4o -p <task-name>
+# OR
+harbor run -a terminus-2 -m gpt-4-turbo -p <task-name>
+
+# Anthropic (Claude 3.5 Sonnet)
+export ANTHROPIC_API_KEY=<your-anthropic-api-key>
+# Try with anthropic/ prefix first:
+harbor run -a terminus-2 -m anthropic/claude-3-5-sonnet-20240620 -p <task-name>
+# If that fails, check Anthropic API docs for the exact model identifier
+# Common alternatives: anthropic/claude-3-opus-20240229, anthropic/claude-3-sonnet-20240229
+# Note: Model names may vary - verify with Anthropic's API documentation
+```
+
+**Important:** 
+- GPT-5 doesn't exist yet — use `gpt-4o` or `gpt-4-turbo` for OpenAI direct API
+- TerminalBench model identifiers (`@openai-tbench/gpt-5`, etc.) only work with Portkey
+- For direct API, use standard model names that LiteLLM recognizes
+- Anthropic models require the `anthropic/` prefix (e.g., `anthropic/claude-3-5-sonnet-20240620`)
+- If a model name doesn't work, check the provider's API documentation for the exact model identifier
+
 Run each 2–3 times; target pass rate < 80%.
 
 ## Step 9: Run CI/LLMaJ Checks Locally
 
+**Using Portkey (TerminalBench models):**
 ```bash
 # GPT-5
 harbor run -a terminus-2 -m openai/@openai-tbench/gpt-5 -p harbor_tasks/<task-name>
 
 # Claude Sonnet 4.5
 harbor run -a terminus-2 -m openai/@anthropic-tbench/claude-sonnet-4-5-20250929 -p harbor_tasks/<task-name>
+```
+
+**Using Direct APIs:**
+```bash
+cd snorkel-ai
+
+# If .env holds direct API keys, load once:
+set -a; source .env; set +a
+
+# OpenAI
+export OPENAI_API_KEY=<your-openai-api-key>
+harbor run -a terminus-2 -m gpt-4o -p <task-name>
+
+# Anthropic
+export ANTHROPIC_API_KEY=<your-anthropic-api-key>
+harbor run -a terminus-2 -m anthropic/claude-3-5-sonnet-20240620 -p <task-name>
+# If model not found, try: anthropic/claude-3-opus-20240229 or anthropic/claude-3-sonnet-20240229
 ```
 
 All checks should pass before submission.
@@ -136,8 +188,13 @@ All checks should pass before submission.
 # Oracle agent
 harbor run --agent oracle --path harbor_tasks/<task-name>
 
-# CI/LLMaJ checks
+# CI/LLMaJ checks (Portkey)
 harbor run -a terminus-2 -m openai/@openai-tbench/gpt-5 -p harbor_tasks/<task-name>
+
+# CI/LLMaJ checks (Direct API)
+cd snorkel-ai
+export OPENAI_API_KEY=<your-openai-api-key>
+harbor run -a terminus-2 -m gpt-4o -p <task-name>
 ```
 
 ## Step 11: Pre-Submission Checklist

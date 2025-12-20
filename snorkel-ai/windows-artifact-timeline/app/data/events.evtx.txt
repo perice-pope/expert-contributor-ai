@@ -1,0 +1,9 @@
+EventID:4688|Time:2024-01-15T19:30:25.123Z|Process:C:\Windows\System32\notepad.exe|Signed:true
+EventID:4688|Time:2024-01-15T19:31:10.456Z|Process:C:\Windows\System32\cmd.exe|Signed:true
+EventID:4688|Time:2024-01-15T19:32:00.789Z|Process:C:\Users\Admin\Documents\suspicious.exe|Signed:false
+EventID:7045|Time:2024-01-15T19:35:20.012Z|Service:WindowsUpdate|Action:start
+EventID:4657|Time:2024-01-15T19:40:00.345Z|Key:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run|Value:malware.exe
+EventID:4688|Time:2024-01-15T19:45:30.678Z|Process:C:\Windows\System32\powershell.exe|Signed:true
+EventID:4657|Time:2024-01-15T19:50:15.901Z|Key:HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\run|Value:startup.exe
+EventID:4688|Time:2024-01-15T19:55:00.234Z|Process:C:\Program Files\Common Files\service.dll|Signed:false
+

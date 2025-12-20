@@ -1,0 +1,13 @@
+Port 2223
+ListenAddress 127.0.0.1
+Protocol 2
+HostKey /app/apphost/ssh_host_ed25519_key
+HostCertificate /app/apphost/ssh_host_ed25519_key-cert.pub
+PasswordAuthentication no
+PubkeyAuthentication yes
+TrustedUserCAKeys /app/ca/user_ca.pub
+AuthorizedPrincipalsFile /app/apphost/authorized_principals
+AllowUsers appuser
+UsePAM no
+ClientAliveInterval 60
+Subsystem sftp /usr/lib/openssh/sftp-server

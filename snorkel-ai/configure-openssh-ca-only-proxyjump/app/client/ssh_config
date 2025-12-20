@@ -1,0 +1,23 @@
+# Seed client config; must be tightened for ProxyJump + ControlMaster + CA trust.
+Host bastion
+    HostName 127.0.0.1
+    Port 2222
+    User appuser
+    StrictHostKeyChecking ask
+    UserKnownHostsFile /app/client/known_hosts
+    IdentityFile /app/client/id_client
+    # CertificateFile /app/client/id_client-cert.pub
+
+Host app-via-bastion
+    HostName 127.0.0.1
+    Port 2223
+    User appuser
+    ProxyJump bastion
+    StrictHostKeyChecking ask
+    UserKnownHostsFile /app/client/known_hosts
+    IdentityFile /app/client/id_client
+    # CertificateFile /app/client/id_client-cert.pub
+    ControlMaster no
+    ControlPath /tmp/ssh-%r@%h:%p
+    ControlPersist no
+

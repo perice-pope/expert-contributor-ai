@@ -1,0 +1,22 @@
+Host bastion
+  HostName 127.0.0.1
+  Port 2222
+  User appuser
+  IdentityFile /app/client/id_client
+  CertificateFile /app/client/id_client-cert.pub
+  UserKnownHostsFile /app/client/known_hosts
+  StrictHostKeyChecking yes
+  BatchMode yes
+  LogLevel ERROR
+
+Host app-via-bastion
+  HostName 127.0.0.1
+  Port 2223
+  User appuser
+  IdentityFile /app/client/id_client
+  CertificateFile /app/client/id_client-cert.pub
+  ProxyJump bastion
+  UserKnownHostsFile /app/client/known_hosts
+  StrictHostKeyChecking yes
+  BatchMode yes
+  LogLevel ERROR

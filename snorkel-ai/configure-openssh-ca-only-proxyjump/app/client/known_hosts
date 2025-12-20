@@ -1,0 +1,4 @@
+# TODO: replace with hashed entries and @cert-authority once host CA is in place.
+[127.0.0.1]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFa9Flok6HC9ZKnz3y0por/cU18cFW/JcrMMeS/7OAvO
+[127.0.0.1]:2223 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINJFwM/7Rdn9wy3FKxqMEn728NTglf/yFC46BGkmRbZp
+
