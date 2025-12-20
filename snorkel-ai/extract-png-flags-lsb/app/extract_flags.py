@@ -9,7 +9,6 @@ This script has several bugs that need to be fixed:
 """
 
 import os
-import struct
 from PIL import Image
 from io import BytesIO
 
@@ -92,7 +91,7 @@ def extract_lsb_flag(image_data):
         # BUG: May not handle encoding correctly
         flag = bytes(flag_bytes).decode('ascii', errors='ignore').rstrip('\x00')
         return flag
-    except Exception as e:
+    except Exception:
         # BUG: Silently fails, should log or handle better
         return None
 
