@@ -38,3 +38,6 @@ lvremove -y /dev/vg_mysql/mysql_snapshot
 
 log "Backup completed: $BACKUP_PATH"
 
+
+
+

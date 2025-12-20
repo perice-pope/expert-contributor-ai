@@ -190,3 +190,6 @@ The task requires understanding of:
 - Plugin discovery requires proper entry points; manual loading with `--load-plugins` also works
 - Some edge cases (e.g., dynamically constructed function calls) may not be detected
 
+
+
+

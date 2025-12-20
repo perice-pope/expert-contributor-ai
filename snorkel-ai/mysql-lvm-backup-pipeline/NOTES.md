@@ -204,3 +204,6 @@ This task requires containers with:
 
 The Dockerfile sets up LVM using a loop device, which requires appropriate capabilities when running the container.
 
+
+
+

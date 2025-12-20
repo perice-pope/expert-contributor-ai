@@ -26,3 +26,6 @@ def sync_function():
     time.sleep(1)
     return "ok"
 
+
+
+
