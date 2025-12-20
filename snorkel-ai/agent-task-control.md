@@ -23,6 +23,7 @@ Use this task name to namespace ALL control files.
 ### Control files (task-scoped)
 - `<task-name>.STATE.md`
 - `<task-name>.DONE.md`
+- `<task-name>.QC.md`
 
 🚫 Generic names like `STATE.md` or `DONE.md` are FORBIDDEN.
 
@@ -34,6 +35,7 @@ You are **NOT finished** until ALL of the following are true:
 
 - `<task-name>.STATE.md` exists AND all steps 1–12 are checked
 - `<task-name>.DONE.md` exists AND is fully populated
+- `<task-name>.QC.md` exists AND all QC checks pass
 - Oracle agent passes
 - Real agents tested (≥ 2 distinct models)
 - CI / LLMaJ checks executed
@@ -42,6 +44,22 @@ You are **NOT finished** until ALL of the following are true:
 
 🚫 Stopping at Step 8 is a FAILURE  
 🚫 Assuming completion is a FAILURE
+
+---
+
+## Where QC belongs in the flow
+
+Between Step 11 and Step 12
+
+Why:
+
+Step 11 = structure & submission hygiene
+
+QC = semantic + CI correctness
+
+Step 12 = irreversible packaging
+
+This mirrors real CI pipelines.
 
 ---
 
@@ -83,6 +101,7 @@ COMPLETED_STEPS:
 - [ ] 9
 - [ ] 10
 - [ ] 11
+- [ ] 11.5
 - [ ] 12
 ```
 
@@ -116,6 +135,112 @@ Template:
 ## Completion
 All executable steps completed successfully.
 ```
+
+---
+
+### 3️⃣ `<task-name>.QC.md` (REQUIRED, TEMPORARY)
+
+This file records completion of the official Quality Control checklist.
+
+This file MUST exist before final packaging  
+This file MUST NOT exist in the final ZIP
+
+Template:
+
+```markdown
+# Quality Control — <task-name>
+
+## Manual Review Readiness
+
+- [ ] Oracle correctness verified  
+  (Oracle solution produces correct output and aligns with task intent)
+
+- [ ] Prompt clarity verified  
+  (All required behavior is explicitly stated in instruction.md)
+
+- [ ] Environment correctness verified  
+  (Dockerfile builds and runtime behavior matches task assumptions)
+
+- [ ] Tags reviewed and accurate  
+  (task.toml metadata accurately reflects task content)
+
+---
+
+## CI / Evaluation Checks
+
+- [ ] behavior_in_task_description  
+  (EVERY behavior checked by tests is explicitly described in instruction.md)
+
+- [ ] behavior_in_tests  
+  (EVERY behavior described in instruction.md is exercised by tests)
+
+- [ ] informative_test_docstrings  
+  (Each test clearly states what behavior it validates)
+
+- [ ] anti_cheating_measures  
+  (Agent cannot trivially bypass task by reading files, hardcoding outputs, or inspecting solutions)
+
+- [ ] structured_data_schema (if applicable)  
+  (Exact schema is documented in task.yaml or an explicitly referenced file)
+
+- [ ] pinned_dependencies  
+  (All non-apt dependencies are version pinned)
+
+- [ ] typos  
+  (No typos in filenames, variables, paths, or instructions)
+
+- [ ] tests_or_solution_in_image  
+  (tests/ and solution files are NOT copied into the Docker image)
+
+- [ ] test_deps_in_image  
+  (Test-only dependencies are installed at test time, not build time)
+
+- [ ] hardcoded_solution  
+  (Solution derives results via computation, not direct echo/cat of final answers)
+
+- [ ] file_reference_mentioned  
+  (All files referenced in tests are mentioned in task instructions)
+
+- [ ] check_canary  
+  (Required canary string exists at top of all required files)
+
+- [ ] check_dockerfile_references  
+  (Dockerfile does NOT reference forbidden files)
+
+- [ ] check_run-tests_sh  
+  (run-tests.sh uses uv init / uv venv or task.yaml declares system-wide scope)
+
+- [ ] check_task_absolute_path  
+  (Instructions use absolute paths, not relative ones)
+
+- [ ] check_test_file_references  
+  (Files referenced in tests are declared in task.yaml)
+
+- [ ] check_files  
+  (No extraneous files exist outside the task directory)
+
+- [ ] check_privileged_containers  
+  (No privileged containers are used)
+
+- [ ] check_task_sizes  
+  (All files are under 1MB)
+
+- [ ] validate_task_fields  
+  (All required task.yaml fields are present and valid)
+
+---
+
+## Result
+
+ALL CHECKS PASSED
+```
+
+**Rules:**
+
+* Every checkbox must be checked
+* If any check fails, execution MUST continue
+
+This wording is directly grounded in the QC document but removes all interpretive wiggle room.
 
 ---
 
@@ -255,30 +380,49 @@ Mark Step 11 complete
 
 ---
 
+### Step 11.5: Quality Control Gate (MANDATORY)
+
+1. Create `<task-name>.QC.md`
+2. Evaluate ALL Quality Control checks listed
+3. Fix any failures
+4. Check ALL boxes in `<task-name>.QC.md`
+5. Verify the file exists and is complete
+
+If `<task-name>.QC.md` is incomplete:
+- DO NOT proceed
+- Continue execution until resolved
+
+This prevents silent skipping.
+
+---
+
 ## CONTROL FILE TEARDOWN (MANDATORY)
 
 The following files MUST NOT appear in the final ZIP:
 
 * `<task-name>.STATE.md`
 * `<task-name>.DONE.md`
+* `<task-name>.QC.md`
 
-If either file exists, submission is INVALID.
+If any of these files exist, submission is INVALID.
 
 ---
 
 ### Step 12: Final Packaging (NO CONTROL FILES)
 
 1. Generate `<task-name>.DONE.md`
-2. Verify all steps 1–11 complete
+2. Verify all steps 1–11.5 complete
 3. DELETE control files:
 
    ```bash
-   rm -f <task-name>.STATE.md <task-name>.DONE.md
+   rm -f <task-name>.STATE.md <task-name>.DONE.md <task-name>.QC.md
    ```
 4. Verify deletion:
 
    ```bash
-   test ! -f <task-name>.STATE.md && test ! -f <task-name>.DONE.md
+   test ! -f <task-name>.STATE.md \
+     && test ! -f <task-name>.DONE.md \
+     && test ! -f <task-name>.QC.md
    ```
 5. Create ZIP from task root contents
 6. Validate ZIP structure:
@@ -288,6 +432,42 @@ If either file exists, submission is INVALID.
    ```
 
 ONLY after ZIP validation may execution stop.
+
+---
+
+## Why this will NOT skip steps again
+
+Because now:
+
+QC is:
+
+* A state-gated step
+* A file-verified artifact
+* A hard dependency of ZIP creation
+
+The agent cannot reach Step 12 without QC passing
+
+The QC file cannot leak into the ZIP
+
+Restarting the agent resumes cleanly at QC if interrupted
+
+This is exactly how production CI gates are modeled.
+
+---
+
+## Final mental model
+
+You now have three execution layers:
+
+1. Build & test pipeline (Steps 1–11)
+2. Semantic + CI correctness gate (QC)
+3. Immutable packaging (Step 12)
+
+Agents are good at work.  
+They are bad at "remembering to double-check".
+
+You didn't ask them to remember.  
+You forced them.
 
 ---
 

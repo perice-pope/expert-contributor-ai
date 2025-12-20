@@ -1,0 +1,22 @@
+# CANARY_STRING_PLACEHOLDER
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pylint-async-io-checker"
+version = "0.1.0"
+description = "Pylint plugin to detect blocking I/O in async functions"
+requires-python = ">=3.11"
+dependencies = [
+    "pylint==3.0.3",
+]
+
+# BUG: Missing entry points for Pylint to discover the plugin
+# BUG: Missing [tool.pylint.async_io_checker] configuration section
+# BUG: Missing pytest dependency
+
+[tool.pylint.async_io_checker]
+enabled = true
+blocking_functions = ["open", "time.sleep", "requests.get", "requests.post", "urllib.request.urlopen"]
+
