@@ -26,10 +26,10 @@ def test_decrypted_content_matches_expected():
         f"Expected 'SECRET_MESSAGE_42' marker in decrypted content, got: {decrypted_content[:100]}"
     )
     assert "The quick brown fox jumps over the lazy dog" in decrypted_content, (
-        f"Expected test phrase not found in decrypted content"
+        "Expected test phrase not found in decrypted content"
     )
     assert "Recovery successful" in decrypted_content, (
-        f"Expected 'Recovery successful' marker not found in decrypted content"
+        "Expected 'Recovery successful' marker not found in decrypted content"
     )
 
 
