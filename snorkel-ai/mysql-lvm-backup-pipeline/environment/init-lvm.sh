@@ -51,9 +51,11 @@ chmod 755 /run/mysqld
 
 # Start MySQL in background - mysqld_safe will keep it running
 # mysqld_safe handles restarts automatically
-mysqld_safe --user=mysql --datadir=/var/lib/mysql --socket=/run/mysqld/mysqld.sock > /var/log/mysqld_safe.log 2>&1 &
+# Use nohup and redirect stdin to ensure it persists across script exits
+nohup mysqld_safe --user=mysql --datadir=/var/lib/mysql --socket=/run/mysqld/mysqld.sock > /var/log/mysqld_safe.log 2>&1 < /dev/null &
 MYSQL_PID=$!
-sleep 3  # Give mysqld_safe time to start
+echo "[init] Started mysqld_safe with PID: $MYSQL_PID"
+sleep 5  # Give mysqld_safe more time to start
 
 # Wait for MySQL to be ready
 echo "[init] Waiting for MySQL to start..."
