@@ -151,6 +151,30 @@ The task requires understanding of:
 - Migration can run multiple times (skips already-migrated users)
 - Service operations are stateless (except user file updates)
 
+## Expected Difficulty
+
+**Hard** - This task requires:
+- Understanding password hashing security (SHA-1 vs Argon2id)
+- Implementing Argon2id with configurable parameters
+- Maintaining backward compatibility during migration
+- Implementing rehash-on-login logic
+- CSV parsing and credential validation
+- Complete audit reporting
+- Flask service integration
+
+**Target Pass Rate**: < 80% (challenging but fair)
+
+**Real Agent Test Results:**
+- **Oracle agent**: 100% (Mean: 1.0) - Perfect baseline ✅
+  - All 14 tests passed
+- **claude-code**: 0% (Mean: 0.0) - Failed ❌
+  - 6 tests passed, 8 tests failed
+  - Main issues:
+    - Missing `/app/audit.json` file (migration script not fully implemented)
+    - Users not migrated to Argon2id (still using SHA-1)
+    - Migration script ran but didn't complete the full workflow
+  - This confirms the task is appropriately challenging (< 80% pass rate goal)
+
 ## Task difficulty knobs
 
 ### Easy mode (not used here)
