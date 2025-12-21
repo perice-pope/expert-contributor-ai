@@ -3,9 +3,11 @@ FROM debian:bookworm-slim
 # Install system dependencies
 # Note: LVM and MySQL require specific setup
 # Include curl and python3/pip for tests to avoid runtime installation
+# kmod provides modprobe for loading kernel modules (dm-snapshot for LVM snapshots)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     lvm2 \
+    kmod \
     default-mysql-server \
     default-mysql-client \
     rsync \

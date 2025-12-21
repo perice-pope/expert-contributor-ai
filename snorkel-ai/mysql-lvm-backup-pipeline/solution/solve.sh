@@ -4,6 +4,14 @@ set -euo pipefail
 
 cd /app
 
+# Ensure LVM is set up before proceeding
+if ! mount | grep -q "vg_mysql"; then
+    echo "[oracle] LVM not mounted, running init-lvm.sh..."
+    if [ -x /usr/local/bin/init-lvm.sh ]; then
+        /usr/local/bin/init-lvm.sh || echo "[oracle] init-lvm.sh failed, continuing anyway..."
+    fi
+fi
+
 echo "[oracle] Fixing MySQL backup script..."
 
 # Fix the backup script
@@ -18,7 +26,7 @@ BACKUP_DIR="/backups/mysql"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_PATH="${BACKUP_DIR}/backup_${TIMESTAMP}"
 SNAPSHOT_NAME="mysql_snapshot"
-SNAPSHOT_SIZE="100M"
+SNAPSHOT_SIZE="1G"
 MOUNT_POINT="/mnt/mysql_snapshot"
 VG_NAME="vg_mysql"
 LV_NAME="lv_mysql_data"

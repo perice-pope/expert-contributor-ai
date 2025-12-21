@@ -744,37 +744,6 @@ Edit `/home/perice09/.local/bin/harbor` to pass API keys:
 - After Harbor Docker image rebuilds
 - On new machines or after system updates
 
-### Harbor Verifier Execution Context - Background Processes
-
-**Symptoms:**
-- Test script starts background processes (e.g., MySQL) but script exits immediately after
-- Background processes appear to be killed by Harbor
-- Script waits for services but they never become ready
-
-**Root Cause:**
-Harbor executes `test.sh` via `docker exec` in the same container. However:
-1. Harbor may execute `test.sh` before `init-lvm.sh` completes (if container command runs async)
-2. Background processes started in `test.sh` may be killed when script exits
-3. Services started in `init-lvm.sh` may not be accessible in verifier execution context
-
-**Fix:**
-1. Ensure `docker-compose.yaml` command waits for init to complete: `init-lvm.sh && exec tail -f /dev/null`
-2. In `test.sh`, check if services are already running from init script
-3. If services aren't accessible, start them in `test.sh` using methods that persist:
-   - Use `nohup` and redirect stdin: `nohup command < /dev/null &`
-   - Use `setsid` to detach from terminal: `setsid command < /dev/null &`
-   - Ensure process survives script exit
-
-**Verification:**
-```bash
-# Check if init-lvm.sh MySQL is accessible
-docker exec <container> mysqladmin ping
-
-# Check if test.sh can access MySQL
-harbor run --agent oracle --path <task-name>
-# Check test output for MySQL readiness
-```
-
 ---
 
 ## ABSOLUTE FINAL RULE

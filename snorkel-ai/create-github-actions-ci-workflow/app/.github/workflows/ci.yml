@@ -1,0 +1,19 @@
+# INCOMPLETE WORKFLOW - This file needs to be completed
+# Missing: matrix build, caching, linting, testing, coverage, publishing
+
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # TODO: Add matrix build with Ubuntu/Windows, Python 3.8-3.10, Node.js 14/16
+  # TODO: Add dependency caching for pip and npm
+  # TODO: Add linting steps
+  # TODO: Add testing steps
+  # TODO: Add coverage upload
+  # TODO: Add conditional publishing on semver tags
+

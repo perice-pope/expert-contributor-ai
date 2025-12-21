@@ -24,6 +24,9 @@ MySQL may not be running or accessible when tests execute. The init script start
 - Using `exec tail -f /dev/null` to keep container alive
 - Init script runs before container stays alive
 
+### 3. Fixed `solution/solve.sh`
+- Fixed snapshot size from "100M" to "1G" to match instruction requirements (line 21)
+
 ## Testing Required
 
 To verify Step 7 passes:
@@ -48,6 +51,7 @@ Expected result:
 
 ## Status
 - ✅ Fixes applied to init-lvm.sh and docker-compose.yaml
+- ✅ Fixed snapshot size bug in solution (100M → 1G)
 - ⏳ Waiting for test execution to verify fix works
 - ⚠️ Cannot test currently due to Docker image issue (snorkel-harbor:0.1.25)
 

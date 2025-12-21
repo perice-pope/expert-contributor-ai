@@ -1,11 +1,16 @@
 #!/bin/bash
-set -euo pipefail
+# Note: Not using set -e because we want to continue even if some commands fail
+# This allows the script to be called from solve.sh without killing the container
 
 # Initialize LVM setup for MySQL backup task
 # This script creates a loop device, volume group, and logical volume
 # Then moves MySQL data to the logical volume
 
 echo "[init] Setting up LVM for MySQL backup task..."
+
+# Try to load device-mapper snapshot module (needed for LVM snapshots)
+echo "[init] Loading dm-snapshot kernel module..."
+modprobe dm-snapshot 2>/dev/null || echo "[init] Warning: Could not load dm-snapshot module"
 
 # Create a loop device with a file
 LOOP_FILE=/tmp/lvm-backing-file
@@ -14,8 +19,16 @@ LOOP_SIZE=500M
 dd if=/dev/zero of=$LOOP_FILE bs=1M count=500 2>/dev/null
 
 # Find next available loop device
-LOOP_DEV=$(losetup -f)
-losetup $LOOP_DEV $LOOP_FILE
+LOOP_DEV=$(losetup -f 2>/dev/null) || {
+    echo "[init] ERROR: Cannot find loop device. Loop devices may not be available."
+    echo "[init] This is expected in non-privileged containers."
+    exit 1
+}
+
+if ! losetup $LOOP_DEV $LOOP_FILE 2>/dev/null; then
+    echo "[init] ERROR: Cannot set up loop device $LOOP_DEV"
+    exit 1
+fi
 
 # Create physical volume
 pvcreate -y $LOOP_DEV
@@ -95,6 +108,9 @@ if [ -n "$MYSQL_PID" ]; then
     # Verify MySQL is accessible
     if mysqladmin ping --silent 2>/dev/null; then
         echo "[init] MySQL is ready and accessible"
+        # Create a marker file to indicate init is complete and MySQL is ready
+        touch /tmp/init-complete.marker
+        echo "[init] Init complete marker created"
     else
         echo "[init] WARNING: MySQL process exists but not responding to ping"
     fi

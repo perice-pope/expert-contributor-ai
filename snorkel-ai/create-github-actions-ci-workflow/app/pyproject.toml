@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "example-project"
+version = "1.0.0"
+description = "Example Python/Node.js project"
+requires-python = ">=3.8"
+
