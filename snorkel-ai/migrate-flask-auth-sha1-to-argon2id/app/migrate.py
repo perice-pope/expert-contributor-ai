@@ -4,6 +4,7 @@ CLI tool to bulk-migrate users from SHA-1 to Argon2id password hashing.
 Reads login attempts from CSV and validates credentials before migrating.
 """
 
+import csv
 import json
 import os
 import hashlib
