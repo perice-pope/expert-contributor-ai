@@ -40,7 +40,7 @@ You are **NOT finished** until ALL of the following are true:
 - Real agents tested (≥ 2 distinct models)
 - CI / LLMaJ checks executed
 - ZIP structure validated
-- Control files (except STATE.md) are DELETED before final ZIP
+- Control files (STATE.md, DONE.md, QC.md, NOTES.md) are EXCLUDED from final ZIP
 
 🚫 Stopping at Step 8 is a FAILURE  
 🚫 Assuming completion is a FAILURE
@@ -178,7 +178,7 @@ Legend: [x]=complete with evidence, [~]=needs re-verification, [ ]=incomplete, [
 **Rules**
 
 * You may only check a step after it is fully complete WITH EVIDENCE for verification steps
-* You may NOT delete this file (it should remain in the final ZIP)
+* You may NOT delete this file (it remains in development directory but is excluded from ZIP)
 * `STATE = DONE` may only occur after Step 12 AND all verification gates show ✅
 
 **⚠️ VERIFICATION GATE RULES (MANDATORY):**
@@ -436,7 +436,7 @@ Every autonomous fix MUST be logged. This creates an audit trail without stoppin
 * You MUST proceed past Step 8
 * You MUST self-resume if interrupted
 * Control files MUST be namespaced with task name
-* Control files (except STATE.md) MUST be deleted before ZIP creation
+* Control files (STATE.md, DONE.md, QC.md, NOTES.md) MUST be excluded from ZIP creation
 * You MUST log issues and continue, not stop to ask
 
 ---
@@ -585,14 +585,21 @@ This prevents silent skipping.
 
 ## CONTROL FILE TEARDOWN (MANDATORY)
 
-The following files MUST NOT appear in the final ZIP:
+The following files MUST NOT appear in the final ZIP (development/maintainer files):
 
-* `<task-name>.DONE.md`
-* `<task-name>.QC.md`
+* `<task-name>.DONE.md` (temporary control file)
+* `<task-name>.QC.md` (temporary control file)
+* `<task-name>.STATE.md` (development progress tracking)
+* `NOTES.md` (maintainer documentation)
 
-Note: `<task-name>.STATE.md` should remain in the ZIP to preserve the progress checklist.
+**Note:** These files should remain in the development directory but be excluded from the submission ZIP.
 
-If any of the forbidden files exist, submission is INVALID.
+**Required files that MUST be included:**
+* `instruction.md` (task instructions)
+* `task.toml` (task configuration)
+* `app/`, `solution/`, `tests/`, `environment/` directories
+
+If any of the forbidden files exist in the ZIP, submission is INVALID.
 
 ---
 
@@ -600,7 +607,7 @@ If any of the forbidden files exist, submission is INVALID.
 
 1. Generate `<task-name>.DONE.md`
 2. Verify all steps 1–11.5 complete
-3. DELETE control files (keep STATE.md):
+3. DELETE temporary control files (keep STATE.md and NOTES.md for development):
 
    ```bash
    rm -f <task-name>.DONE.md <task-name>.QC.md
@@ -611,12 +618,17 @@ If any of the forbidden files exist, submission is INVALID.
    test ! -f <task-name>.DONE.md \
      && test ! -f <task-name>.QC.md
    ```
-5. Verify STATE.md is preserved:
+5. Create ZIP from task root contents, excluding development files:
 
    ```bash
-   test -f <task-name>.STATE.md
+   zip -r <task-name>-submission.zip <task-name>/ \
+     -x "*.pyc" -x "*__pycache__*" -x "*.DS_Store" \
+     -x "*.pytest_cache*" \
+     -x "<task-name>/NOTES.md" \
+     -x "<task-name>/*.STATE.md" \
+     -x "<task-name>/*.DONE.md" \
+     -x "<task-name>/*.QC.md"
    ```
-6. Create ZIP from task root contents
 7. Validate ZIP structure:
 
    ```bash
