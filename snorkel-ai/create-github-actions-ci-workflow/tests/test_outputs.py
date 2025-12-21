@@ -1,7 +1,6 @@
 """Tests for GitHub Actions CI workflow creation task."""
 
 import yaml
-import re
 from pathlib import Path
 
 

@@ -70,6 +70,20 @@ if ! losetup "$LOOP_DEV" "$LOOP_FILE" 2>&1; then
     exit 1
 fi
 
+# Clean up any existing vg_mysql volume group from previous runs
+if vgs vg_mysql &>/dev/null; then
+    echo "[init] Cleaning up existing vg_mysql volume group..."
+    # Unmount any mounted LV
+    umount /var/lib/mysql 2>/dev/null || true
+    umount /mnt/lv_mysql 2>/dev/null || true
+    # Remove snapshots first
+    lvremove -f vg_mysql/mysql_snapshot 2>/dev/null || true
+    # Remove the main LV
+    lvremove -f vg_mysql/lv_mysql_data 2>/dev/null || true
+    # Remove the VG
+    vgremove -f vg_mysql 2>/dev/null || true
+fi
+
 # Create physical volume
 pvcreate -y $LOOP_DEV
 
