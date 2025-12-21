@@ -618,7 +618,22 @@ If any of the forbidden files exist in the ZIP, submission is INVALID.
    test ! -f <task-name>.DONE.md \
      && test ! -f <task-name>.QC.md
    ```
-5. Create ZIP from task root contents, excluding development files:
+5. **DELETE ALL EXISTING ZIP FILES** (prevent multiple ZIPs):
+
+   ```bash
+   # Delete any existing ZIPs for this task (in task dir, parent dir, or anywhere)
+   find . -name "<task-name>*.zip" -type f -delete
+   find .. -maxdepth 1 -name "<task-name>*.zip" -type f -delete
+   ```
+6. Verify no ZIPs exist:
+
+   ```bash
+   test ! -f <task-name>.zip \
+     && test ! -f <task-name>-submission.zip \
+     && test ! -f ../<task-name>.zip \
+     && test ! -f ../<task-name>-submission.zip
+   ```
+7. Create ZIP from task root contents, excluding development files:
 
    ```bash
    # ZIP must have files at ROOT level (not nested in directory)
@@ -630,16 +645,26 @@ If any of the forbidden files exist in the ZIP, submission is INVALID.
      -x "NOTES.md" \
      -x "*.STATE.md" \
      -x "*.DONE.md" \
-     -x "*.QC.md"
+     -x "*.QC.md" \
+     -x "*.zip"
    cd ..
    ```
-7. Validate ZIP structure:
+8. Verify ONLY ONE ZIP exists:
 
    ```bash
-   unzip -l submission.zip | head -20
+   # Should find exactly one ZIP file
+   ZIP_COUNT=$(find .. -maxdepth 1 -name "<task-name>*.zip" -type f | wc -l)
+   test "$ZIP_COUNT" -eq 1 || (echo "ERROR: Found $ZIP_COUNT ZIP files, expected 1" && exit 1)
+   ```
+9. Validate ZIP structure:
+
+   ```bash
+   unzip -l <task-name>-submission.zip | head -20
+   # Verify no forbidden files
+   unzip -l <task-name>-submission.zip | grep -E "(NOTES|STATE|DONE|QC|__pycache__|\.pytest_cache|\.pyc)" && exit 1 || echo "✓ No forbidden files"
    ```
 
-ONLY after ZIP validation may execution stop.
+ONLY after ZIP validation and single-ZIP verification may execution stop.
 
 ---
 
