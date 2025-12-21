@@ -12,21 +12,61 @@ echo "[init] Setting up LVM for MySQL backup task..."
 echo "[init] Loading dm-snapshot kernel module..."
 modprobe dm-snapshot 2>/dev/null || echo "[init] Warning: Could not load dm-snapshot module"
 
-# Create a loop device with a file
-LOOP_FILE=/tmp/lvm-backing-file
+# Create a loop device with a file - use unique name to avoid conflicts
+LOOP_FILE="/tmp/lvm-backing-file-$$"
 LOOP_SIZE=500M
+echo "[init] Creating backing file: $LOOP_FILE"
+
 # Reduced from 5GB to 500MB for low-memory systems
 dd if=/dev/zero of=$LOOP_FILE bs=1M count=500 2>/dev/null
 
-# Find next available loop device
-LOOP_DEV=$(losetup -f 2>/dev/null) || {
-    echo "[init] ERROR: Cannot find loop device. Loop devices may not be available."
-    echo "[init] This is expected in non-privileged containers."
-    exit 1
-}
+# Ensure loop device kernel module is loaded
+modprobe loop 2>/dev/null || echo "[init] Warning: Could not load loop module"
 
-if ! losetup $LOOP_DEV $LOOP_FILE 2>/dev/null; then
+# Find a free loop device or detach an orphaned one
+LOOP_DEV=""
+for i in $(seq 0 255); do
+    DEV="/dev/loop$i"
+    if [ -e "$DEV" ]; then
+        # Check if this loop device is free
+        if ! losetup "$DEV" 2>/dev/null | grep -q .; then
+            LOOP_DEV="$DEV"
+            break
+        fi
+        # Check if backing file no longer exists (orphaned)
+        BACKING=$(losetup "$DEV" 2>/dev/null | awk '{print $6}' | tr -d '()')
+        if [ -n "$BACKING" ] && [ ! -f "$BACKING" ]; then
+            echo "[init] Detaching orphaned loop device $DEV (backing file gone)"
+            losetup -d "$DEV" 2>/dev/null || true
+            LOOP_DEV="$DEV"
+            break
+        fi
+    fi
+done
+
+if [ -z "$LOOP_DEV" ]; then
+    # Try losetup -f as fallback
+    LOOP_DEV=$(losetup -f 2>/dev/null)
+fi
+
+if [ -z "$LOOP_DEV" ]; then
+    echo "[init] ERROR: Cannot find loop device. All loop devices may be in use."
+    exit 1
+fi
+
+echo "[init] Using loop device: $LOOP_DEV"
+
+# Create the loop device node if it doesn't exist
+if [ ! -e "$LOOP_DEV" ]; then
+    LOOP_NUM=$(echo "$LOOP_DEV" | grep -o '[0-9]*$')
+    echo "[init] Creating loop device node: $LOOP_DEV"
+    mknod "$LOOP_DEV" b 7 "$LOOP_NUM" 2>/dev/null || true
+fi
+
+if ! losetup "$LOOP_DEV" "$LOOP_FILE" 2>&1; then
     echo "[init] ERROR: Cannot set up loop device $LOOP_DEV"
+    echo "[init] Checking loop device status..."
+    losetup -a 2>&1 | head -10 || true
     exit 1
 fi
 
