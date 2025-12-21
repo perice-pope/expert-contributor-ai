@@ -621,13 +621,17 @@ If any of the forbidden files exist in the ZIP, submission is INVALID.
 5. Create ZIP from task root contents, excluding development files:
 
    ```bash
-   zip -r <task-name>-submission.zip <task-name>/ \
+   # ZIP must have files at ROOT level (not nested in directory)
+   # CI expects: task.toml, instruction.md, app/, tests/, etc. at root
+   cd <task-name>
+   zip -r ../<task-name>-submission.zip . \
      -x "*.pyc" -x "*__pycache__*" -x "*.DS_Store" \
      -x "*.pytest_cache*" \
-     -x "<task-name>/NOTES.md" \
-     -x "<task-name>/*.STATE.md" \
-     -x "<task-name>/*.DONE.md" \
-     -x "<task-name>/*.QC.md"
+     -x "NOTES.md" \
+     -x "*.STATE.md" \
+     -x "*.DONE.md" \
+     -x "*.QC.md"
+   cd ..
    ```
 7. Validate ZIP structure:
 
