@@ -6,7 +6,6 @@ This script has multiple bugs that need to be fixed.
 
 import json
 import subprocess
-import sys
 from pathlib import Path
 
 # BUG: Missing imports for parsing requirements.txt
@@ -68,12 +67,12 @@ def get_pypi_outdated():
     
     for pkg in packages:
         # BUG: This command doesn't exist or work correctly
-        result = subprocess.run(
+        _result = subprocess.run(
             ["pip", "index", "versions", pkg["name"]],
             capture_output=True,
             text=True
         )
-        # BUG: Doesn't parse output correctly
+        # BUG: Doesn't parse output correctly (result ignored)
         outdated.append(pkg)
     
     return outdated
@@ -161,8 +160,8 @@ def generate_commit_summary(updates):
 def main():
     """Main entry point."""
     print("Reading dependency files...")
-    npm_deps = read_package_json()
-    pypi_deps = read_requirements_txt()
+    _npm_deps = read_package_json()  # BUG: Not used
+    _pypi_deps = read_requirements_txt()  # BUG: Not used
     
     print("Checking for outdated packages...")
     outdated_npm = get_npm_outdated()

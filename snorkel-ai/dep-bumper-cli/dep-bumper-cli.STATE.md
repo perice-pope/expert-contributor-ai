@@ -49,6 +49,7 @@ Legend: [x]=complete with evidence, [~]=needs re-verification, [ ]=incomplete, [
 | 3 | 2025-01-17 | Oracle agent passed | Verified with harbor run --agent oracle --path dep-bumper-cli | Mean: 1.000, reward = 1.0 |
 | 4 | 2025-01-17 | Step 8 real agents | Ran GPT-5 (3x, all 0.0) and Claude Sonnet 4.5 (3x, 2x 1.0, 1x 0.0) | Task is challenging but solvable |
 | 5 | 2025-01-17 | Step 4 interactive test | Verified environment starts with harbor tasks start-env | Environment works correctly |
+| 6 | 2025-01-17 | Fixed ruff linting errors | Removed unused imports/variables, prefixed unused vars with _ | CI checks now pass |
 
 ---
 ## NEXT ACTION

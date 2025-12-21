@@ -14,11 +14,22 @@ modprobe dm-snapshot 2>/dev/null || echo "[init] Warning: Could not load dm-snap
 
 # Create a loop device with a file - use unique name to avoid conflicts
 LOOP_FILE="/tmp/lvm-backing-file-$$"
-LOOP_SIZE=500M
-echo "[init] Creating backing file: $LOOP_FILE"
+echo "[init] Creating 500MB backing file: $LOOP_FILE"
 
 # Reduced from 5GB to 500MB for low-memory systems
-dd if=/dev/zero of=$LOOP_FILE bs=1M count=500 2>/dev/null
+# Use verbose output to confirm it works
+dd if=/dev/zero of="$LOOP_FILE" bs=1M count=500 status=progress 2>&1 || {
+    echo "[init] ERROR: Failed to create backing file"
+    exit 1
+}
+
+# Verify the file was created with correct size
+FILE_SIZE=$(stat -c%s "$LOOP_FILE" 2>/dev/null || echo "0")
+echo "[init] Backing file created: $FILE_SIZE bytes"
+if [ "$FILE_SIZE" -lt 524288000 ]; then
+    echo "[init] ERROR: Backing file too small: $FILE_SIZE bytes (expected 524288000)"
+    exit 1
+fi
 
 # Ensure loop device kernel module is loaded
 modprobe loop 2>/dev/null || echo "[init] Warning: Could not load loop module"
@@ -70,18 +81,40 @@ if ! losetup "$LOOP_DEV" "$LOOP_FILE" 2>&1; then
     exit 1
 fi
 
-# Clean up any existing vg_mysql volume group from previous runs
+# Aggressive cleanup of any existing vg_mysql volume group from previous runs
+echo "[init] Checking for existing vg_mysql volume group..."
 if vgs vg_mysql &>/dev/null; then
-    echo "[init] Cleaning up existing vg_mysql volume group..."
-    # Unmount any mounted LV
+    echo "[init] Found existing vg_mysql, cleaning up..."
+    # Unmount any mounted volumes
     umount /var/lib/mysql 2>/dev/null || true
     umount /mnt/lv_mysql 2>/dev/null || true
-    # Remove snapshots first
+    umount /mnt/mysql_snapshot 2>/dev/null || true
+    
+    # Deactivate all LVs in the VG
+    vgchange -an vg_mysql 2>/dev/null || true
+    
+    # Remove all LVs
     lvremove -f vg_mysql/mysql_snapshot 2>/dev/null || true
-    # Remove the main LV
     lvremove -f vg_mysql/lv_mysql_data 2>/dev/null || true
+    
     # Remove the VG
-    vgremove -f vg_mysql 2>/dev/null || true
+    vgremove -ff vg_mysql 2>/dev/null || true
+    
+    # Remove orphaned PVs on loop devices (but not our current one)
+    for pv in $(pvs --noheadings -o pv_name 2>/dev/null | grep loop); do
+        if [ "$pv" != "$LOOP_DEV" ]; then
+            echo "[init] Removing orphaned PV: $pv"
+            pvremove -ff "$pv" 2>/dev/null || true
+        fi
+    done
+    
+    # Detach any loop devices associated with lvm-backing files (but not our current one)
+    for dev in $(losetup -a 2>/dev/null | grep lvm-backing | cut -d: -f1); do
+        if [ "$dev" != "$LOOP_DEV" ]; then
+            echo "[init] Detaching loop device: $dev"
+            losetup -d "$dev" 2>/dev/null || true
+        fi
+    done
 fi
 
 # Create physical volume
@@ -91,7 +124,17 @@ pvcreate -y $LOOP_DEV
 vgcreate -y vg_mysql $LOOP_DEV
 
 # Create logical volume (400MB for MySQL data - reduced for low-memory systems)
-lvcreate -y -L 400M -n lv_mysql_data vg_mysql
+# -Zy disables zeroing which can fail in constrained environments
+echo "[init] Creating logical volume..."
+if ! lvcreate -y -Zy -L 400M -n lv_mysql_data vg_mysql 2>&1; then
+    echo "[init] First attempt failed, trying without zero flag..."
+    lvcreate -y -L 400M -n lv_mysql_data vg_mysql 2>&1 || {
+        echo "[init] ERROR: Failed to create logical volume"
+        lvs 2>&1 || true
+        exit 1
+    }
+fi
+echo "[init] Logical volume created successfully"
 
 # Format as ext4
 mkfs.ext4 -F /dev/vg_mysql/lv_mysql_data

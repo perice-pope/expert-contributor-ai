@@ -63,10 +63,10 @@ def test_cli_updates_package_json():
     script_path = Path("/app/dep_bumper.py")
     pkg_path = Path("/app/package.json")
     
-    # Read original package.json
-    original_data = json.loads(pkg_path.read_text())
-    original_deps = original_data.get("dependencies", {}).copy()
-    original_dev_deps = original_data.get("devDependencies", {}).copy()
+    # Read original package.json (not directly used, but file read confirms it exists)
+    _original_data = json.loads(pkg_path.read_text())
+    _original_deps = _original_data.get("dependencies", {}).copy()  # Not used in this test
+    _original_dev_deps = _original_data.get("devDependencies", {}).copy()  # Not used in this test
     
     # Run CLI with 'all' selection if there are outdated packages, 'skip' otherwise
     # First check if there are outdated packages
@@ -99,8 +99,8 @@ def test_cli_updates_package_json():
         
         # Check if package.json was updated
         updated_data = json.loads(pkg_path.read_text())
-        updated_deps = updated_data.get("dependencies", {})
-        updated_dev_deps = updated_data.get("devDependencies", {})
+        _updated_deps = updated_data.get("dependencies", {})  # Not directly checked, file read confirms update
+        _updated_dev_deps = updated_data.get("devDependencies", {})  # Not directly checked
         
         # At least one dependency should have changed if updates were applied
         # (We check that the file was potentially modified - exact changes depend on available updates)
@@ -162,7 +162,7 @@ def test_cli_updates_requirements_txt():
         )
         
         # Check if requirements.txt was updated
-        updated_content = req_path.read_text()
+        _updated_content = req_path.read_text()  # Not directly checked, file read confirms update
         
         # File should have been modified (exact changes depend on available updates)
         assert "Updating dependency files" in result.stdout or "Done!" in result.stdout, (
@@ -207,10 +207,8 @@ def test_cli_regenerates_lockfiles():
             f"CLI should regenerate lockfiles. Output: {result.stdout}\nError: {result.stderr}"
         )
         
-        # package-lock.json should exist after npm install
-        lock_path = Path("/app/package-lock.json")
         # Note: npm install may fail if packages are incompatible, but should be attempted
-        # We just verify the attempt was made
+        # We just verify the attempt was made (lock_path not checked as it may not exist if install fails)
 
 
 def test_cli_generates_commit_summary():
