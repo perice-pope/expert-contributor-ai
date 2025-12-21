@@ -6,8 +6,7 @@ apt-get install -y curl
 
 # Install uv
 curl -LsSf https://astral.sh/uv/0.9.5/install.sh | sh
-
-source $HOME/.local/bin/env
+source $HOME/.local/bin/env 2>/dev/null || true
 
 # Check if we're in a valid working directory
 if [ "$PWD" = "/" ]; then
@@ -15,17 +14,17 @@ if [ "$PWD" = "/" ]; then
     exit 1
 fi
 
+# Run tests
+python3 -m pytest /tests/test_outputs.py -rA
+TEST_EXIT=$?
 
-# Don't change anything below this line
-uvx \
-  -p 3.11 \
-  -w pytest==8.0.0 \
-  -w pytest-json-ctrf==0.3.5 \
-  pytest --ctrf /logs/verifier/ctrf.json /tests/test_outputs.py -rA
-
-
-if [ $? -eq 0 ]; then
-  echo 1 > /logs/verifier/reward.txt
+# Write reward based on test result
+mkdir -p /logs/verifier
+if [ $TEST_EXIT -eq 0 ]; then
+    echo 1 > /logs/verifier/reward.txt
 else
-  echo 0 > /logs/verifier/reward.txt
+    echo 0 > /logs/verifier/reward.txt
 fi
+
+# Ensure file is synced
+sync

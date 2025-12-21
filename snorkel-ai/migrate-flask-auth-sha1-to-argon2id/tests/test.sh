@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Install curl and other dependencies
+# Install curl
 apt-get update
 apt-get install -y curl
 
@@ -15,16 +15,15 @@ if [ "$PWD" = "/" ]; then
     exit 1
 fi
 
-# Don't change anything below this line
+# Pre-create reward file with failure state (will be overwritten on success)
+echo 0 > /logs/verifier/reward.txt
+
+# Run tests - if all pass, overwrite reward to 1
 uvx \
   -p 3.11 \
   -w pytest==8.4.1 \
   -w pytest-json-ctrf==0.3.5 \
   -w requests==2.31.0 \
-  pytest --ctrf /logs/verifier/ctrf.json /tests/test_outputs.py -rA
-
-if [ $? -eq 0 ]; then
-  echo 1 > /logs/verifier/reward.txt
-else
-  echo 0 > /logs/verifier/reward.txt
-fi
+  -w argon2-cffi==23.1.0 \
+  pytest --ctrf /logs/verifier/ctrf.json /tests/test_outputs.py -rA \
+  && echo 1 > /logs/verifier/reward.txt

@@ -213,6 +213,60 @@ The task requires understanding of:
 - Argon2id hash values are non-deterministic due to random salts (tests check format, not exact values)
 - Flask service runs in tests but may have port conflicts in some environments
 
+## Harbor Infrastructure Troubleshooting
+
+### Issue: RewardFileNotFoundError - Files not syncing from container to host
+
+**Symptoms:**
+- All tests pass (14/14) but Harbor reports `RewardFileNotFoundError`
+- `test-stdout.txt` appears in verifier directory but `reward.txt` and `ctrf.json` do not
+- Files exist inside container (`/logs/verifier/reward.txt`) but not on host filesystem
+
+**Root Cause:**
+The Harbor CLI runs inside a Docker container (via shim at `/home/perice09/.local/bin/harbor`) and mounts `${PWD}:/workspace`. When Harbor tells task containers to mount volumes at `/workspace/jobs/.../verifier`, Docker looks for `/workspace` on the **actual host filesystem**. If `/workspace` is a separate directory (not symlinked to the Harbor workspace), volume mounts fail silently.
+
+**Fix:**
+```bash
+# Create symlink so /workspace points to the Harbor workspace
+sudo rm -rf /workspace
+sudo ln -s /home/perice09/workspace/snorkel-ai /workspace
+```
+
+**Verification:**
+```bash
+# Check symlink exists
+ls -la /workspace
+
+# Run oracle agent - should now create reward.txt
+cd /home/perice09/workspace/snorkel-ai
+harbor run --agent oracle --path migrate-flask-auth-sha1-to-argon2id
+
+# Verify reward.txt exists
+ls -la /workspace/jobs/*/migrate-flask-auth-sha1-to-argon2id__*/verifier/reward.txt
+```
+
+**Additional Fix for CI Checks:**
+The Harbor shim needs to pass through API key environment variables for `harbor tasks check`:
+
+```bash
+# Edit /home/perice09/.local/bin/harbor
+# Add these lines before "${HARBOR_IMAGE}" "$@":
+  -e OPENAI_API_KEY="${OPENAI_API_KEY:-}" \
+  -e ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}" \
+  -e OPENAI_BASE_URL="${OPENAI_BASE_URL:-}" \
+```
+
+**When to Check:**
+- If you see `RewardFileNotFoundError` despite tests passing
+- If `test-stdout.txt` exists but `reward.txt` doesn't
+- If Harbor was recently rebuilt or Docker environment changed
+- If working on a new machine or after system updates
+
+**Prevention:**
+- Ensure `/workspace` symlink exists before running Harbor tasks
+- Check symlink after Harbor Docker image rebuilds
+- Document this requirement in setup scripts
+
 
 
 

@@ -2,16 +2,26 @@ FROM debian:bookworm-slim
 
 # Install system dependencies
 # Note: LVM and MySQL require specific setup
+# Include curl and python3/pip for tests to avoid runtime installation
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     lvm2 \
-    mysql-server \
-    mysql-client \
+    default-mysql-server \
+    default-mysql-client \
     rsync \
     cron \
     procps \
     gawk \
+    curl \
+    ca-certificates \
+    python3 \
+    python3-pip \
+    python3-venv \
     && rm -rf /var/lib/apt/lists/*
+
+# Pre-install uv for faster Python package management
+RUN curl -LsSf https://astral.sh/uv/0.9.5/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
 
 # Set up MySQL
 RUN mkdir -p /var/run/mysqld && \
@@ -19,7 +29,8 @@ RUN mkdir -p /var/run/mysqld && \
     chmod 755 /var/run/mysqld
 
 # Initialize MySQL data directory (will be moved to LVM later)
-RUN mysqld --initialize-insecure --user=mysql --datadir=/var/lib/mysql
+# MariaDB uses mariadb-install-db instead of mysqld --initialize-insecure
+RUN mariadb-install-db --user=mysql --datadir=/var/lib/mysql --skip-test-db
 
 # Set working directory
 WORKDIR /app

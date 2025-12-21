@@ -14,14 +14,12 @@ import astroid
 import toml
 from pathlib import Path
 from pylint.checkers import BaseChecker
-from pylint.interfaces import IAstroidChecker
 from pylint.lint import PyLinter
 
 
 class AsyncIOChecker(BaseChecker):
     """Checker for blocking I/O operations in async functions."""
     
-    __implements__ = IAstroidChecker
     name = "async-io-checker"
     priority = -1
     msgs = {
@@ -105,13 +103,35 @@ class AsyncIOChecker(BaseChecker):
         for node in nodes:
             if isinstance(node, astroid.Call):
                 self._check_blocking_call(node, func_node)
-            elif isinstance(node, (astroid.If, astroid.For, astroid.While, astroid.With)):
+            elif isinstance(node, astroid.Expr):
+                # Expr nodes wrap Call nodes (e.g., time.sleep(1) is Expr(Call(...)))
+                if isinstance(node.value, astroid.Call):
+                    self._check_blocking_call(node.value, func_node)
+            elif isinstance(node, astroid.Assign):
+                # Assign nodes can have Call nodes as values (e.g., response = requests.get(...))
+                if isinstance(node.value, astroid.Call):
+                    self._check_blocking_call(node.value, func_node)
+            elif isinstance(node, astroid.With):
+                # Check With statements - open() calls are in context_expr (items are tuples: (context_expr, optional_vars))
+                if hasattr(node, "items"):
+                    for item in node.items:
+                        # item is a tuple: (context_expr, optional_vars)
+                        if isinstance(item, tuple) and len(item) > 0:
+                            context_expr = item[0]
+                            if isinstance(context_expr, astroid.Call):
+                                self._check_blocking_call(context_expr, func_node)
                 # Recursively check nested blocks
                 if hasattr(node, "body"):
                     self._check_node(node.body, func_node)
                 if hasattr(node, "orelse"):
                     self._check_node(node.orelse, func_node)
-            elif isinstance(node, astroid.TryExcept):
+            elif isinstance(node, (astroid.If, astroid.For, astroid.While)):
+                # Recursively check nested blocks
+                if hasattr(node, "body"):
+                    self._check_node(node.body, func_node)
+                if hasattr(node, "orelse"):
+                    self._check_node(node.orelse, func_node)
+            elif isinstance(node, astroid.Try):
                 # Check try, except, and else blocks
                 if hasattr(node, "body"):
                     self._check_node(node.body, func_node)
@@ -163,6 +183,11 @@ class AsyncIOChecker(BaseChecker):
         if isinstance(current, astroid.Name):
             parts.append(current.name)
         return ".".join(reversed(parts))
+
+
+def register(linter):
+    """Register the checker with pylint."""
+    linter.register_checker(AsyncIOChecker(linter))
 PYTHON_EOF
 
 echo "[oracle] Step 2: Fixing pyproject.toml configuration..."

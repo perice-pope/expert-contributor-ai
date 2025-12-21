@@ -9,8 +9,9 @@ echo "[init] Setting up LVM for MySQL backup task..."
 
 # Create a loop device with a file
 LOOP_FILE=/tmp/lvm-backing-file
-LOOP_SIZE=5G
-dd if=/dev/zero of=$LOOP_FILE bs=1M count=5120 2>/dev/null
+LOOP_SIZE=500M
+# Reduced from 5GB to 500MB for low-memory systems
+dd if=/dev/zero of=$LOOP_FILE bs=1M count=500 2>/dev/null
 
 # Find next available loop device
 LOOP_DEV=$(losetup -f)
@@ -22,8 +23,8 @@ pvcreate -y $LOOP_DEV
 # Create volume group
 vgcreate -y vg_mysql $LOOP_DEV
 
-# Create logical volume (4GB for MySQL data)
-lvcreate -y -L 4G -n lv_mysql_data vg_mysql
+# Create logical volume (400MB for MySQL data - reduced for low-memory systems)
+lvcreate -y -L 400M -n lv_mysql_data vg_mysql
 
 # Format as ext4
 mkfs.ext4 -F /dev/vg_mysql/lv_mysql_data
@@ -41,15 +42,29 @@ chown -R mysql:mysql /mnt/lv_mysql
 umount /mnt/lv_mysql
 mount /dev/vg_mysql/lv_mysql_data /var/lib/mysql
 
-# Start MySQL
+# Start MySQL (MariaDB uses mysqld_safe or systemctl, but in container we use mysqld_safe)
 echo "[init] Starting MySQL..."
-mysqld_safe --user=mysql --datadir=/var/lib/mysql &
+# Ensure socket directory exists (MariaDB default is /run/mysqld/mysqld.sock)
+mkdir -p /run/mysqld
+chown mysql:mysql /run/mysqld
+chmod 755 /run/mysqld
+
+# Start MySQL in background - mysqld_safe will keep it running
+# mysqld_safe handles restarts automatically
+mysqld_safe --user=mysql --datadir=/var/lib/mysql --socket=/run/mysqld/mysqld.sock > /var/log/mysqld_safe.log 2>&1 &
 MYSQL_PID=$!
+sleep 3  # Give mysqld_safe time to start
 
 # Wait for MySQL to be ready
-for i in {1..30}; do
+echo "[init] Waiting for MySQL to start..."
+for i in {1..60}; do
     if mysqladmin ping --silent 2>/dev/null; then
+        echo "[init] MySQL is ready!"
         break
+    fi
+    if [ $i -eq 60 ]; then
+        echo "[init] ERROR: MySQL failed to start after 60 seconds"
+        exit 1
     fi
     sleep 1
 done
@@ -72,6 +87,19 @@ INSERT INTO test_table (name, value) VALUES
 EOF
 
 echo "[init] LVM and MySQL setup complete!"
+MYSQL_PID=$(pgrep -f mysqld_safe || echo "")
+if [ -n "$MYSQL_PID" ]; then
+    echo "[init] MySQL is running (PID: $MYSQL_PID)"
+    # Verify MySQL is accessible
+    if mysqladmin ping --silent 2>/dev/null; then
+        echo "[init] MySQL is ready and accessible"
+    else
+        echo "[init] WARNING: MySQL process exists but not responding to ping"
+    fi
+else
+    echo "[init] ERROR: MySQL process not found after startup"
+    exit 1
+fi
 
 
 

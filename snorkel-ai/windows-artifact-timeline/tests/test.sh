@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Write default reward file IMMEDIATELY 
+# This ensures a reward file exists even if script is killed
+echo 0 > /logs/verifier/reward.txt
+
 # Install curl
 apt-get update
 apt-get install -y curl
@@ -29,3 +33,7 @@ if [ $? -eq 0 ]; then
 else
   echo 0 > /logs/verifier/reward.txt
 fi
+
+# Ensure files are synced to disk before container exits
+sync
+sleep 1

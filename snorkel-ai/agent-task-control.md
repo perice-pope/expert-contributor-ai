@@ -40,10 +40,45 @@ You are **NOT finished** until ALL of the following are true:
 - Real agents tested (≥ 2 distinct models)
 - CI / LLMaJ checks executed
 - ZIP structure validated
-- ALL control files are DELETED before final ZIP
+- Control files (except STATE.md) are DELETED before final ZIP
 
 🚫 Stopping at Step 8 is a FAILURE  
 🚫 Assuming completion is a FAILURE
+
+---
+
+## LOCK GATES (MANDATORY)
+
+The task progresses through **three phases** with explicit locks:
+
+| Phase | Steps | Lock Condition |
+|-------|-------|----------------|
+| IMPLEMENTATION | 1-6 | No lock (can proceed freely) |
+| VERIFICATION | 4, 7, 8, 9 | 🔒 Each step requires PROOF before [x] |
+| PACKAGING | 12 | 🔒 ALL verification steps must show ✅ with evidence |
+
+### Verification Steps Require Proof
+
+These steps CANNOT be marked `[x]` without evidence in STATE.md:
+
+| Step | Proof Required |
+|------|----------------|
+| 4 | Command output showing interactive session worked |
+| 7 | Command output showing `reward.txt = 1` |
+| 8 | Run logs for ≥2 models, 2-3 times each, with outcomes |
+| 9 | CI check output showing all checks PASS |
+
+### Lock Status Markers
+
+In STATE.md, use these markers:
+
+- `[x]` = Complete WITH evidence documented
+- `[~]` = Attempted but needs re-verification (evidence incomplete or suspect)
+- `[ ]` = Not started or incomplete
+- `[B]` = Blocked on external dependency
+
+🚫 NEVER mark `[x]` on Steps 4, 7, 8, 9 without proof
+🚫 NEVER proceed to Step 12 while any verification step shows `[~]` or `[ ]`
 
 ---
 
@@ -89,27 +124,82 @@ Create this file IMMEDIATELY after determining the task name.
 ```markdown
 STATE = INCOMPLETE
 
-COMPLETED_STEPS:
-- [ ] 1
-- [ ] 2
-- [ ] 3
-- [ ] 4
-- [ ] 5
-- [ ] 6
-- [ ] 7
-- [ ] 8
-- [ ] 9
-- [ ] 10
-- [ ] 11
-- [ ] 11.5
-- [ ] 12
+---
+## VERIFICATION GATE
+
+| Requirement | Status | Evidence |
+|-------------|--------|----------|
+| Step 4: Interactive test | ⬜ NOT VERIFIED | (paste command + output summary) |
+| Step 7: Oracle agent | ⬜ NOT VERIFIED | (paste reward.txt = 1 proof) |
+| Step 8: Real agents (Model 1) | ⬜ NOT VERIFIED | (paste run outcome) |
+| Step 8: Real agents (Model 2) | ⬜ NOT VERIFIED | (paste run outcome) |
+| Step 9: CI checks | ⬜ NOT VERIFIED | (paste all checks PASS) |
+
+🔒 **PACKAGING LOCKED** — Step 12 blocked until ALL show ✅ VERIFIED
+
+---
+## COMPLETED STEPS
+
+Legend: [x]=complete with evidence, [~]=needs re-verification, [ ]=incomplete, [B]=blocked
+
+### Implementation (no lock)
+- [ ] 1 - Extract and Rename
+- [ ] 2 - Write Instructions and Configuration
+- [ ] 3 - Configure Docker Environment
+- [ ] 5 - Create Solution File
+- [ ] 6 - Write Tests
+
+### Verification (requires proof)
+- [ ] 4 - Local Interactive Test
+- [ ] 7 - Run Oracle Agent
+- [ ] 8 - Test With Real Agents
+- [ ] 9 - Run CI / LLMaJ Checks
+
+### Validation
+- [ ] 10 - Final Verification
+- [ ] 11 - Pre-Submission Validation
+- [ ] 11.5 - Quality Control Gate
+
+### Packaging (locked until verification complete)
+- [ ] 12 - Final Packaging
+
+---
+## ISSUE LOG
+
+| # | Date | Issue | Action Taken | Assumption |
+|---|------|-------|--------------|------------|
+
+---
+## NEXT ACTION
+
+(Current step and what needs to be done)
 ```
 
 **Rules**
 
-* You may only check a step after it is fully complete
-* You may NOT delete this file until Step 12 teardown
-* `STATE = DONE` may only occur conceptually after Step 12
+* You may only check a step after it is fully complete WITH EVIDENCE for verification steps
+* You may NOT delete this file (it should remain in the final ZIP)
+* `STATE = DONE` may only occur after Step 12 AND all verification gates show ✅
+
+**⚠️ VERIFICATION GATE RULES (MANDATORY):**
+* Steps 4, 7, 8, 9 require PROOF in the VERIFICATION GATE table
+* Update the table with actual evidence when steps complete
+* Status must change from ⬜ to ✅ only when proof is documented
+* PACKAGING LOCKED message remains until all gates are ✅
+
+**⚠️ COMPLETION CRITERIA (MANDATORY):**
+* Step 4: Interactive test MUST work (environment behaves correctly)
+* Step 7: Oracle agent MUST PASS (reward.txt = "1", not "0")
+* Step 8: MUST run ≥2 models, 2-3 times each, record all outcomes
+* Step 9: CI checks MUST PASS (all checks pass, not just "attempted")
+* Step 12: Can ONLY be marked complete after ALL steps 1-11.5 are [x]
+
+🚫 DO NOT mark [x] if:
+- Step failed or had errors
+- Tests didn't pass (reward = 0)
+- Required runs/models weren't completed
+- Description says "needs verification", "pending", or "attempted"
+- VERIFICATION GATE still shows ⬜ for that step
 
 ---
 
@@ -117,24 +207,54 @@ COMPLETED_STEPS:
 
 This file MUST exist before teardown and MUST NOT exist in final ZIP.
 
+**Purpose:** Track verification status and final completion. This file is named DONE.md but the task is NOT done until it says so explicitly.
+
 Template:
 
 ```markdown
 # DONE — <task-name>
 
+## ❌ TASK COMPLETE: NO
+<!-- Change to ✅ TASK COMPLETE: YES only when ALL gates are unlocked -->
+
+| Final Gate | Status |
+|------------|--------|
+| All verification steps passed | 🔒 LOCKED |
+| ZIP package created | 🔒 LOCKED |
+
+**Reason:** (describe current blocker)
+
+---
+
 ## Verification Summary
 
-- Oracle agent: ✅ PASS
-- Real agents tested:
-  - Model 1: PASS
-  - Model 2: PASS
-- CI / LLMaJ checks: ✅ PASS
-- ZIP structure validated: ✅ PASS
-- Forbidden files excluded: ✅ PASS
+| Requirement | Status | Evidence |
+|-------------|--------|----------|
+| Oracle agent | ⬜ PENDING | (not yet run) |
+| Real agent: Model 1 | ⬜ PENDING | (not yet run) |
+| Real agent: Model 2 | ⬜ PENDING | (not yet run) |
+| CI / LLMaJ checks | ⬜ PENDING | (not yet run) |
+| ZIP structure validated | ⬜ PENDING | (not yet created) |
+| Forbidden files excluded | ⬜ PENDING | (not yet verified) |
 
-## Completion
-All executable steps completed successfully.
+---
+
+## Implementation Summary
+
+(Brief description of what was built)
+
+---
+
+## Next Steps
+
+(What needs to happen to unlock the gates)
 ```
+
+**Rules:**
+* Header must show ❌ TASK COMPLETE: NO until truly complete
+* Only change to ✅ TASK COMPLETE: YES after Step 12 packaging succeeds
+* Each verification item must show actual evidence, not just ✅
+* If blocked, document the blocker explicitly
 
 ---
 
@@ -232,15 +352,81 @@ Template:
 
 ## Result
 
-ALL CHECKS PASSED
+### Code Quality Checks: ⬜ PENDING
+<!-- Change to ✅ ALL PASSED only when every box above is checked -->
+
+⚠️ **SCOPE NOTICE:** QC checks validate code quality and structure.
+They do NOT replace verification steps (4, 7, 8, 9) which require actual execution proof.
+
+See `<task-name>.STATE.md` VERIFICATION GATE for execution status.
 ```
 
 **Rules:**
 
-* Every checkbox must be checked
-* If any check fails, execution MUST continue
+* Every checkbox must be checked before marking "ALL PASSED"
+* If any check fails, execution MUST continue (fix and re-check)
+* QC passing does NOT mean the task is complete — verification steps still required
+* Do NOT claim "ready for submission" while STATE.md verification gates are locked
 
 This wording is directly grounded in the QC document but removes all interpretive wiggle room.
+
+---
+
+## AUTONOMOUS CONTINUATION (MANDATORY)
+
+### Default Behavior: ACT → LOG → CONTINUE
+
+When encountering issues during execution:
+
+1. **If the fix is obvious** → Fix it immediately
+2. **Log the issue** → Add to ISSUE LOG in STATE.md
+3. **Continue working** → Move to the next actionable item
+
+### DO NOT Stop To Ask
+
+❌ "Should I fix this error?"  
+❌ "Do you want me to continue?"  
+❌ "Is this the right approach?"
+
+✅ Fix the error, log it, continue  
+✅ Make the reasonable choice, log it, continue  
+✅ Document assumptions, continue
+
+### Only Stop When
+
+- Required credentials/API keys are missing
+- External access (harbor, network) is unavailable
+- Ambiguous choice with significant, irreversible impact
+- Human approval is explicitly required by contract
+
+### When Blocked on External Resources
+
+If a verification step requires external resources (API keys, harbor access, etc.):
+
+1. Mark the step `[B]` (blocked) in STATE.md
+2. Update VERIFICATION GATE to show ❌ NOT VERIFIED with reason
+3. Complete ALL other steps that can be done locally
+4. Document exactly what command/resource is needed to unblock
+5. Update NEXT ACTION with clear instructions for resumption
+
+Do NOT:
+- Mark verification steps `[x]` without actual proof
+- Claim the task is "ready for submission" while blocked
+- Create the final ZIP while verification gates are locked
+
+### Non-Blocking Issue Log
+
+Add this section to STATE.md and USE IT:
+
+```markdown
+## ISSUE LOG
+
+| # | Date | Issue | Action Taken | Assumption |
+|---|------|-------|--------------|------------|
+| 1 | YYYY-MM-DD | Description | What was done | Why (if not obvious) |
+```
+
+Every autonomous fix MUST be logged. This creates an audit trail without stopping work.
 
 ---
 
@@ -250,7 +436,8 @@ This wording is directly grounded in the QC document but removes all interpretiv
 * You MUST proceed past Step 8
 * You MUST self-resume if interrupted
 * Control files MUST be namespaced with task name
-* Control files MUST be deleted before ZIP creation
+* Control files (except STATE.md) MUST be deleted before ZIP creation
+* You MUST log issues and continue, not stop to ask
 
 ---
 
@@ -400,11 +587,12 @@ This prevents silent skipping.
 
 The following files MUST NOT appear in the final ZIP:
 
-* `<task-name>.STATE.md`
 * `<task-name>.DONE.md`
 * `<task-name>.QC.md`
 
-If any of these files exist, submission is INVALID.
+Note: `<task-name>.STATE.md` should remain in the ZIP to preserve the progress checklist.
+
+If any of the forbidden files exist, submission is INVALID.
 
 ---
 
@@ -412,20 +600,24 @@ If any of these files exist, submission is INVALID.
 
 1. Generate `<task-name>.DONE.md`
 2. Verify all steps 1–11.5 complete
-3. DELETE control files:
+3. DELETE control files (keep STATE.md):
 
    ```bash
-   rm -f <task-name>.STATE.md <task-name>.DONE.md <task-name>.QC.md
+   rm -f <task-name>.DONE.md <task-name>.QC.md
    ```
 4. Verify deletion:
 
    ```bash
-   test ! -f <task-name>.STATE.md \
-     && test ! -f <task-name>.DONE.md \
+   test ! -f <task-name>.DONE.md \
      && test ! -f <task-name>.QC.md
    ```
-5. Create ZIP from task root contents
-6. Validate ZIP structure:
+5. Verify STATE.md is preserved:
+
+   ```bash
+   test -f <task-name>.STATE.md
+   ```
+6. Create ZIP from task root contents
+7. Validate ZIP structure:
 
    ```bash
    unzip -l submission.zip | head -20
@@ -471,12 +663,54 @@ You forced them.
 
 ---
 
+## INFRASTRUCTURE TROUBLESHOOTING
+
+### Harbor RewardFileNotFoundError - Volume Mount Issue
+
+**Symptoms:**
+- All tests pass but Harbor reports `RewardFileNotFoundError`
+- `test-stdout.txt` exists in verifier directory but `reward.txt` and `ctrf.json` do not
+- Files exist inside container (`/logs/verifier/reward.txt`) but not on host filesystem
+
+**Root Cause:**
+Harbor CLI runs inside Docker (via shim) and mounts `${PWD}:/workspace`. When Harbor tells task containers to mount volumes at `/workspace/jobs/.../verifier`, Docker looks for `/workspace` on the **actual host filesystem**. If `/workspace` is a separate directory (not symlinked to Harbor workspace), volume mounts fail silently.
+
+**Fix:**
+```bash
+# Create symlink so /workspace points to Harbor workspace
+sudo rm -rf /workspace
+sudo ln -s /home/perice09/workspace/snorkel-ai /workspace
+```
+
+**Verification:**
+```bash
+ls -la /workspace  # Should show symlink
+cd /home/perice09/workspace/snorkel-ai
+harbor run --agent oracle --path <task-name>
+# Check: ls -la /workspace/jobs/*/<task-name>__*/verifier/reward.txt
+```
+
+**Additional Fix for CI Checks:**
+Edit `/home/perice09/.local/bin/harbor` to pass API keys:
+```bash
+-e OPENAI_API_KEY="${OPENAI_API_KEY:-}" \
+-e ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}" \
+-e OPENAI_BASE_URL="${OPENAI_BASE_URL:-}" \
+```
+
+**When to Check:**
+- `RewardFileNotFoundError` despite tests passing
+- After Harbor Docker image rebuilds
+- On new machines or after system updates
+
+---
+
 ## ABSOLUTE FINAL RULE
 
 If ANY of the following are true:
 
 * A step is unchecked
-* Control files exist
+* Forbidden control files exist (DONE.md or QC.md)
 * ZIP structure is invalid
 
 👉 YOU MUST CONTINUE EXECUTION

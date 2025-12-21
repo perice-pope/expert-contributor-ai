@@ -18,7 +18,7 @@ BACKUP_DIR="/backups/mysql"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_PATH="${BACKUP_DIR}/backup_${TIMESTAMP}"
 SNAPSHOT_NAME="mysql_snapshot"
-SNAPSHOT_SIZE="1G"
+SNAPSHOT_SIZE="100M"
 MOUNT_POINT="/mnt/mysql_snapshot"
 VG_NAME="vg_mysql"
 LV_NAME="lv_mysql_data"
@@ -26,6 +26,19 @@ LV_NAME="lv_mysql_data"
 # Log function
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
+
+wait_for_mysql() {
+    log "Waiting for MySQL to be ready..."
+    for i in {1..60}; do
+        if mysqladmin ping --silent 2>/dev/null; then
+            log "MySQL is ready (attempt $i)"
+            return 0
+        fi
+        sleep 1
+    done
+    log "ERROR: MySQL not ready after 60 seconds"
+    return 1
 }
 
 log "=== Starting MySQL backup ==="
@@ -38,6 +51,8 @@ mkdir -p "$MOUNT_POINT"
 
 # Step 1: Quiesce MySQL - flush tables and acquire read lock
 log "Step 1: Quiescing MySQL database..."
+# Ensure MySQL is up before attempting the lock
+wait_for_mysql
 # Use a background MySQL connection to hold the lock
 mysql -u root <<'MYSQL_LOCK_EOF' &
 FLUSH TABLES WITH READ LOCK;
