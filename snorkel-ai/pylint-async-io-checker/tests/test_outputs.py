@@ -3,7 +3,6 @@ from pathlib import Path
 import subprocess
 import sys
 import os
-import re
 
 
 def test_plugin_file_exists():

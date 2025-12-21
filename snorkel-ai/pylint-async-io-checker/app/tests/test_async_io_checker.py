@@ -1,9 +1,7 @@
 # CANARY_STRING_PLACEHOLDER
 """Unit tests for async_io_checker plugin."""
-import pytest
 from pylint.lint import PyLinter
 from pylint.reporters import CollectingReporter
-from pylint.checkers import initialize
 import sys
 from pathlib import Path
 
