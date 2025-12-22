@@ -1,0 +1,1 @@
+/usr/bin/clang++ -fPIC -shared -Wl,-soname,libmath_utils.so -o libmath_utils.so CMakeFiles/math_utils.dir/src/math_utils.cpp.o  -Wl,-rpath,/usr/lib/llvm-14/lib /usr/lib/llvm-14/lib/libomp.so /lib/x86_64-linux-gnu/libpthread.a 

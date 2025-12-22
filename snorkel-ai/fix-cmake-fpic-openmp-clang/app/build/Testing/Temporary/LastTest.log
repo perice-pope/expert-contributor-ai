@@ -1,0 +1,21 @@
+Start testing: Dec 21 22:42 UTC
+----------------------------------------------------------
+1/1 Testing: calculator_test
+1/1 Test: calculator_test
+Command: "/app/build/calculator"
+Directory: /app/build
+"calculator_test" start time: Dec 21 22:42 UTC
+Output:
+----------------------------------------------------------
+Sum: 36 (expected: 36)
+Dot product: 32 (expected: 32)
+All tests passed!
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"calculator_test" end time: Dec 21 22:42 UTC
+"calculator_test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Dec 21 22:42 UTC

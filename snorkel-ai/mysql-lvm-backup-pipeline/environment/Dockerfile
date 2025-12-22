@@ -21,14 +21,6 @@ RUN apt-get update && \
     python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
-# Pre-install uv for faster Python package management
-RUN curl -LsSf https://astral.sh/uv/0.9.5/install.sh | sh
-ENV PATH="/root/.local/bin:$PATH"
-
-# Pre-install pytest and pytest-json-ctrf to avoid runtime installation issues
-# Debian bookworm requires --break-system-packages flag
-RUN pip3 install --break-system-packages pytest==8.4.1 pytest-json-ctrf==0.3.5
-
 # Set up MySQL
 RUN mkdir -p /var/run/mysqld && \
     chown mysql:mysql /var/run/mysqld && \

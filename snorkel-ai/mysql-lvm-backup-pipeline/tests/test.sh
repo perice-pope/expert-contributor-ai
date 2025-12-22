@@ -5,6 +5,13 @@
 mkdir -p /logs/verifier
 echo 0 > /logs/verifier/reward.txt
 
+# Install test dependencies at runtime (not baked into image)
+echo "Installing test dependencies..." >&2
+pip3 install --break-system-packages --quiet pytest==8.4.1 pytest-json-ctrf==0.3.5 2>&1 >&2 || {
+    echo "Failed to install test dependencies" >&2
+    exit 1
+}
+
 # Check if we're in a valid working directory
 if [ "$PWD" = "/" ]; then
     echo "Error: No working directory set. Please set a WORKDIR in your Dockerfile before running this script."

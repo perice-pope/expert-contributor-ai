@@ -1,0 +1,1 @@
+/usr/bin/clang++ CMakeFiles/calculator.dir/src/main.cpp.o -o calculator  -Wl,-rpath,/app/build:/usr/lib/llvm-14/lib libmath_utils.so /usr/lib/llvm-14/lib/libomp.so /lib/x86_64-linux-gnu/libpthread.a 

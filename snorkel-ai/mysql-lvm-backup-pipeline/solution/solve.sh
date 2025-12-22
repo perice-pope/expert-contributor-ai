@@ -85,8 +85,74 @@ fi
 
 # Step 2: Create LVM snapshot
 log "Step 2: Creating LVM snapshot..."
-if lvcreate -s -L "$SNAPSHOT_SIZE" -n "$SNAPSHOT_NAME" "/dev/${VG_NAME}/${LV_NAME}"; then
+
+# First, ensure no stale snapshot exists
+lvremove -y "/dev/${VG_NAME}/${SNAPSHOT_NAME}" 2>/dev/null || true
+dmsetup remove "${VG_NAME}-${SNAPSHOT_NAME}" 2>/dev/null || true
+rm -f "/dev/${VG_NAME}/${SNAPSHOT_NAME}" 2>/dev/null || true
+rm -f "/dev/mapper/${VG_NAME}-${SNAPSHOT_NAME}" 2>/dev/null || true
+
+# Try to create snapshot with various strategies
+SNAPSHOT_CREATED=0
+
+# Get the snapshot size in sectors
+SNAPSHOT_SIZE_MB=400
+CHUNK_SIZE=8  # sectors
+
+# Strategy 1: Create snapshot using dmsetup directly (bypass lvcreate wiping issues)
+log "Attempting snapshot creation with dmsetup..."
+ORIGIN_SECTORS=$(blockdev --getsz "/dev/${VG_NAME}/${LV_NAME}" 2>/dev/null || echo "819200")
+ORIGIN_DEV=$(readlink -f "/dev/${VG_NAME}/${LV_NAME}" 2>/dev/null || echo "/dev/mapper/${VG_NAME}-${LV_NAME}")
+
+# Create a COW backing device from the VG's free space
+# First check if we can create a linear device for COW storage
+COW_SIZE_SECTORS=$((SNAPSHOT_SIZE_MB * 2048))
+log "Origin device: $ORIGIN_DEV, sectors: $ORIGIN_SECTORS"
+
+# Try creating snapshot-origin and snapshot devices manually
+if dmsetup create "${VG_NAME}-${SNAPSHOT_NAME}-cow" --table "0 $COW_SIZE_SECTORS zero" 2>&1; then
+    log "Created zero-backed COW device"
+    if dmsetup create "${VG_NAME}-${SNAPSHOT_NAME}" --table "0 $ORIGIN_SECTORS snapshot $ORIGIN_DEV /dev/mapper/${VG_NAME}-${SNAPSHOT_NAME}-cow P $CHUNK_SIZE" 2>&1; then
+        SNAPSHOT_CREATED=1
+        log "Snapshot created with dmsetup"
+        # Create device symlinks
+        mkdir -p "/dev/${VG_NAME}"
+        ln -sf "/dev/mapper/${VG_NAME}-${SNAPSHOT_NAME}" "/dev/${VG_NAME}/${SNAPSHOT_NAME}" 2>/dev/null || true
+    else
+        log "dmsetup snapshot creation failed"
+        dmsetup remove "${VG_NAME}-${SNAPSHOT_NAME}-cow" 2>/dev/null || true
+    fi
+else
+    log "dmsetup COW device creation failed"
+fi
+
+# Strategy 2: Try lvcreate with all workarounds if dmsetup failed
+if [ "$SNAPSHOT_CREATED" = "0" ]; then
+    if lvcreate -y -s -L "$SNAPSHOT_SIZE" -n "$SNAPSHOT_NAME" --config 'activation{udev_sync=0 udev_rules=0} global{use_lvmetad=0}' "/dev/${VG_NAME}/${LV_NAME}" 2>&1; then
+        SNAPSHOT_CREATED=1
+        log "Snapshot created with lvcreate"
+    fi
+fi
+
+# Strategy 3: Plain lvcreate as last resort
+if [ "$SNAPSHOT_CREATED" = "0" ]; then
+    if lvcreate -y -s -L "$SNAPSHOT_SIZE" -n "$SNAPSHOT_NAME" "/dev/${VG_NAME}/${LV_NAME}" 2>&1; then
+        SNAPSHOT_CREATED=1
+        log "Snapshot created with standard lvcreate"
+    fi
+fi
+
+if [ "$SNAPSHOT_CREATED" = "1" ]; then
     log "Snapshot created successfully"
+    
+    # Ensure device node exists
+    sleep 1
+    if [ ! -e "/dev/${VG_NAME}/${SNAPSHOT_NAME}" ]; then
+        log "Creating snapshot device symlink..."
+        mkdir -p "/dev/${VG_NAME}"
+        DM_NAME="${VG_NAME}-${SNAPSHOT_NAME}"
+        ln -sf "/dev/mapper/$DM_NAME" "/dev/${VG_NAME}/${SNAPSHOT_NAME}" 2>/dev/null || true
+    fi
 else
     log "ERROR: Failed to create snapshot"
     # Release MySQL lock before exiting
