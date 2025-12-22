@@ -1,0 +1,12 @@
+[package]
+name = "tls-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# reqwest with default features uses native-tls (which depends on openssl-sys)
+# openssl-sys requires system OpenSSL libraries (libssl-dev) which are missing
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
+# tokio-rustls uses rustls (pure Rust, no system OpenSSL needed)
+tokio-rustls = "0.24"
+tokio = { version = "1", features = ["full"] }
