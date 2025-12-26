@@ -1,9 +1,13 @@
 #!/bin/bash
 
+# Determine verifier logs path from environment or use default
+VERIFIER_LOGS="${ENV_VERIFIER_LOGS_PATH:-/logs/verifier}"
+
 # Write default reward file IMMEDIATELY 
 # This ensures a reward file exists even if script is killed
-mkdir -p /logs/verifier
-echo 0 > /logs/verifier/reward.txt
+mkdir -p "$VERIFIER_LOGS"
+echo 0 > "$VERIFIER_LOGS/reward.txt"
+echo "Initialized reward file at: $VERIFIER_LOGS/reward.txt" >&2
 
 # Install test dependencies at runtime (not baked into image)
 echo "Installing test dependencies..." >&2
@@ -81,20 +85,22 @@ fi
 
 echo "MySQL is ready, proceeding with tests..." >&2
 
-# pytest and pytest-json-ctrf are pre-installed in Dockerfile
-# Run pytest directly
+# Run pytest with the ctrf output
 echo "Running pytest..." >&2
-python3 -m pytest --ctrf /logs/verifier/ctrf.json /tests/test_outputs.py -rA -v 2>&1
+python3 -m pytest --ctrf "$VERIFIER_LOGS/ctrf.json" /tests/test_outputs.py -rA -v 2>&1
 PYTEST_EXIT=$?
 echo "Pytest exit code: $PYTEST_EXIT" >&2
 
 if [ $PYTEST_EXIT -eq 0 ]; then
-  echo 1 > /logs/verifier/reward.txt
+  echo 1 > "$VERIFIER_LOGS/reward.txt"
   echo "Tests passed, reward set to 1" >&2
 else
-  echo 0 > /logs/verifier/reward.txt
+  echo 0 > "$VERIFIER_LOGS/reward.txt"
   echo "Tests failed, reward set to 0" >&2
 fi
+
+echo "Final reward file location: $VERIFIER_LOGS/reward.txt" >&2
+ls -la "$VERIFIER_LOGS/" >&2 || true
 
 # Ensure files are synced to disk before container exits
 sync

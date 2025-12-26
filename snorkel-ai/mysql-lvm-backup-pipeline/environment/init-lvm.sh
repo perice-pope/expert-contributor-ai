@@ -13,6 +13,28 @@ echo "[init] Loading dm-snapshot kernel module..."
 modprobe dm-snapshot 2>/dev/null || echo "[init] Warning: Could not load dm-snapshot module"
 modprobe loop 2>/dev/null || echo "[init] Warning: Could not load loop module"
 
+# Check if LVM is already set up and working from a previous run
+if mount | grep -q "vg_mysql.*var/lib/mysql" && lvs vg_mysql/lv_mysql_data &>/dev/null; then
+    echo "[init] LVM already set up and MySQL data mounted - skipping setup"
+    # Just make sure MySQL is running
+    if ! mysqladmin ping --silent 2>/dev/null; then
+        echo "[init] Starting MySQL..."
+        mkdir -p /run/mysqld
+        chown mysql:mysql /run/mysqld
+        nohup mysqld_safe --user=mysql --datadir=/var/lib/mysql --socket=/run/mysqld/mysqld.sock > /var/log/mysqld_safe.log 2>&1 < /dev/null &
+        for i in {1..30}; do
+            if mysqladmin ping --silent 2>/dev/null; then
+                echo "[init] MySQL is ready!"
+                break
+            fi
+            sleep 1
+        done
+    fi
+    echo "[init] Setup complete (reused existing LVM)"
+    touch /tmp/init-complete.marker
+    exit 0
+fi
+
 # STEP 1: Aggressive cleanup of any existing vg_mysql BEFORE doing anything else
 echo "[init] Cleaning up any existing vg_mysql..."
 
@@ -21,35 +43,55 @@ umount /var/lib/mysql 2>/dev/null || true
 umount /mnt/lv_mysql 2>/dev/null || true  
 umount /mnt/mysql_snapshot 2>/dev/null || true
 
-# Try to remove any dm devices with vg_mysql in the name
-for dm in $(dmsetup ls 2>/dev/null | grep vg_mysql | awk '{print $1}'); do
+# Remove only vg_mysql dm devices to avoid affecting other system dm devices
+echo "[init] Removing vg_mysql device-mapper devices..."
+for dm in $(dmsetup ls 2>/dev/null | grep -E "vg_mysql|mysql_snapshot" | awk '{print $1}'); do
     echo "[init] Removing dm device: $dm"
-    dmsetup remove "$dm" 2>/dev/null || true
+    dmsetup remove --force "$dm" 2>/dev/null || true
 done
 
 # Try vgremove regardless of what vgs reports (it might be partially present)
 echo "[init] Force removing vg_mysql..."
+# First, remove all LVs in the VG
+for lv in $(lvs --noheadings -o lv_name vg_mysql 2>/dev/null | tr -d ' '); do
+    echo "[init] Removing LV: $lv"
+    lvremove -f "vg_mysql/$lv" 2>/dev/null || true
+done
 vgchange -an vg_mysql 2>/dev/null || true
-lvremove -f vg_mysql 2>/dev/null || true
 # Use --removemissing to handle orphaned VGs whose PVs are gone
 vgreduce --removemissing --force vg_mysql 2>/dev/null || true
 vgremove -ff vg_mysql 2>/dev/null || true
 
-# Clean up ALL PVs on loop devices
-for pv in $(pvs --noheadings -o pv_name 2>/dev/null | grep loop | tr -d ' '); do
-    echo "[init] Removing PV: $pv"
-    pvremove -ff "$pv" 2>/dev/null || true
+# Wipe LVM metadata from ALL loop devices
+for dev in $(losetup -a 2>/dev/null | cut -d: -f1); do
+    echo "[init] Wiping LVM metadata from: $dev"
+    pvremove -ff "$dev" 2>/dev/null || true
+    # Wipe LVM metadata area (first 1MB)
+    dd if=/dev/zero of="$dev" bs=512 count=2048 conv=notrunc 2>/dev/null || true
 done
 
-# Detach ALL loop devices associated with lvm-backing files
-for dev in $(losetup -a 2>/dev/null | grep lvm-backing | cut -d: -f1); do
+# Also wipe any /tmp lvm backing files
+for f in /tmp/lvm-backing*; do
+    if [ -f "$f" ]; then
+        echo "[init] Removing old backing file: $f"
+        rm -f "$f" 2>/dev/null || true
+    fi
+done
+
+# Detach ALL loop devices (not just lvm-backing files)
+echo "[init] Detaching all loop devices..."
+for dev in $(losetup -a 2>/dev/null | cut -d: -f1); do
     echo "[init] Detaching loop device: $dev"
     losetup -d "$dev" 2>/dev/null || true
 done
 
+# Clear LVM cache to forget about old PVs
+echo "[init] Clearing LVM cache..."
+rm -rf /etc/lvm/archive/* /etc/lvm/backup/* 2>/dev/null || true
+pvscan --cache 2>/dev/null || true
+vgscan --mknodes 2>/dev/null || true
+
 # Final check - if vg_mysql still exists, scan and remove again
-vgscan 2>/dev/null || true
-pvscan 2>/dev/null || true
 if vgs vg_mysql &>/dev/null; then
     echo "[init] vg_mysql still exists after cleanup, forcing removal..."
     vgremove -ff vg_mysql 2>/dev/null || true
@@ -61,21 +103,18 @@ if [ -d "/dev/vg_mysql" ]; then
     rm -rf /dev/vg_mysql 2>/dev/null || true
 fi
 
-# Remove stale dm devices if any
-for dm in /dev/dm-*; do
-    if [ -e "$dm" ] && ! dmsetup info "$(basename "$dm")" &>/dev/null 2>&1; then
-        echo "[init] Removing stale dm device: $dm"
-        rm -f "$dm" 2>/dev/null || true
-    fi
-done
+# Remove stale dm device nodes
+rm -f /dev/dm-* 2>/dev/null || true
+rm -rf /dev/mapper/vg_mysql* 2>/dev/null || true
 
 echo "[init] Cleanup complete"
 
 # STEP 2: Create a new backing file
-# Size: Need 400MB for data LV + at least 1GB for snapshot = 1.5GB minimum
-# Using 2GB to have plenty of space
+# Size: Need 400MB for data LV + at least 1GB for snapshot = ~1.5GB
+# Using 1.5GB to fit in container disk space
 # Use fixed path to ensure cleanup and persistence
 LOOP_FILE="/tmp/lvm-backing-file-mysql"
+BACKING_SIZE_MB=1536  # 1.5GB
 
 # Remove old backing file if it exists
 if [ -f "$LOOP_FILE" ]; then
@@ -83,18 +122,47 @@ if [ -f "$LOOP_FILE" ]; then
     rm -f "$LOOP_FILE" || true
 fi
 
-echo "[init] Creating 2GB backing file: $LOOP_FILE"
+# Check available disk space
+AVAIL_KB=$(df /tmp 2>/dev/null | tail -1 | awk '{print $4}')
+AVAIL_MB=$((AVAIL_KB / 1024))
+echo "[init] Available disk space: ${AVAIL_MB}MB"
 
-dd if=/dev/zero of="$LOOP_FILE" bs=1M count=2048 2>&1 || {
-    echo "[init] ERROR: Failed to create backing file"
-    exit 1
-}
+# Adjust backing file size based on available space
+if [ "$AVAIL_MB" -lt 1600 ]; then
+    BACKING_SIZE_MB=$((AVAIL_MB - 100))  # Leave 100MB headroom
+    echo "[init] Adjusting backing file size to ${BACKING_SIZE_MB}MB due to limited disk space"
+fi
 
-# Verify the file was created with correct size (2GB = 2147483648 bytes)
+echo "[init] Creating ${BACKING_SIZE_MB}MB backing file: $LOOP_FILE"
+
+# Use fallocate for faster allocation if available, fallback to dd
+if command -v fallocate &>/dev/null; then
+    echo "[init] Using fallocate..."
+    fallocate -l ${BACKING_SIZE_MB}M "$LOOP_FILE" 2>&1 || {
+        echo "[init] fallocate failed, trying dd..."
+        dd if=/dev/zero of="$LOOP_FILE" bs=1M count=$BACKING_SIZE_MB 2>&1 || {
+            echo "[init] ERROR: Failed to create backing file"
+            exit 1
+        }
+    }
+else
+    dd if=/dev/zero of="$LOOP_FILE" bs=1M count=$BACKING_SIZE_MB 2>&1 || {
+        echo "[init] ERROR: Failed to create backing file"
+        exit 1
+    }
+fi
+
+# Sync to ensure file is fully written
+sync
+
+# Verify the file was created with correct size
 FILE_SIZE=$(stat -c%s "$LOOP_FILE" 2>/dev/null || echo "0")
-echo "[init] Backing file created: $FILE_SIZE bytes"
-if [ "$FILE_SIZE" -lt 2147483648 ]; then
-    echo "[init] ERROR: Backing file too small: $FILE_SIZE bytes (expected 2147483648)"
+echo "[init] Backing file created: $FILE_SIZE bytes (expected $((BACKING_SIZE_MB * 1024 * 1024)))"
+MIN_SIZE=$((400 * 1024 * 1024))  # Need at least 400MB for the LV
+if [ "$FILE_SIZE" -lt "$MIN_SIZE" ]; then
+    echo "[init] ERROR: Backing file too small: $FILE_SIZE bytes (need at least $MIN_SIZE)"
+    # Check disk space
+    df -h /tmp 2>&1 || true
     exit 1
 fi
 
@@ -120,19 +188,49 @@ echo "[init] Loop device set up successfully"
 sleep 1
 
 # STEP 5: Create PV, VG, LV
+# Configure LVM to allow duplicates (needed in container environments)
+export LVM_SUPPRESS_FD_WARNINGS=1
+
 echo "[init] Creating physical volume..."
-pvcreate -y "$LOOP_DEV" 2>&1 || {
-    echo "[init] ERROR: Failed to create PV"
-    exit 1
+# Use -ff (double force) to overwrite any existing PV signatures
+# Also generate a new UUID to avoid duplicate detection
+pvcreate -ff -y --uuid "$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid)" --norestorefile "$LOOP_DEV" 2>&1 || {
+    echo "[init] pvcreate with uuid failed, trying without..."
+    pvcreate -ff -y "$LOOP_DEV" 2>&1 || {
+        echo "[init] ERROR: Failed to create PV"
+        exit 1
+    }
 }
 
 echo "[init] Creating volume group..."
 # Remove /dev/vg_mysql if it exists as a directory (from previous manual device node creation)
 rm -rf /dev/vg_mysql 2>/dev/null || true
+
+# Set LVM config to ignore duplicate PVs - create a config file
+mkdir -p /etc/lvm
+cat > /etc/lvm/lvm.conf << 'EOF'
+devices {
+    allow_changes_with_duplicate_pvs = 1
+    issue_discards = 0
+}
+global {
+    use_lvmetad = 0
+}
+activation {
+    udev_sync = 0
+    udev_rules = 0
+}
+EOF
+
+# Force rescan with new config
+pvscan --cache 2>/dev/null || true
+
 vgcreate -y vg_mysql "$LOOP_DEV" 2>&1 || {
     echo "[init] ERROR: Failed to create VG"
     echo "[init] Checking for /dev/vg_mysql..."
     ls -la /dev/vg_mysql 2>&1 || true
+    # Show PV info for debugging
+    pvs -a 2>&1 || true
     exit 1
 }
 
@@ -166,21 +264,30 @@ if [ $TEST_DM_RC -eq 0 ]; then
     
     if [ $LVCREATE_RC -eq 0 ]; then
         echo "[init] lvcreate succeeded!"
-        # Check if device node exists
-        if [ ! -e "/dev/vg_mysql/lv_mysql_data" ]; then
-            echo "[init] Device node not found, creating manually..."
-            # Get info and create device nodes
-            DM_MAJOR=$(awk '/device-mapper/ {print $1}' /proc/devices 2>/dev/null || echo "253")
-            DM_MINOR=$(dmsetup info -c -o Minor --noheadings vg_mysql-lv_mysql_data 2>/dev/null | tr -d ' ')
-            
-            if [ -n "$DM_MINOR" ] && [ -n "$DM_MAJOR" ]; then
-                mkdir -p /dev/mapper /dev/vg_mysql
-                if [ ! -e "/dev/dm-$DM_MINOR" ]; then
-                    mknod "/dev/dm-$DM_MINOR" b "$DM_MAJOR" "$DM_MINOR" 2>&1 || true
-                fi
-                ln -sf "/dev/dm-$DM_MINOR" /dev/mapper/vg_mysql-lv_mysql_data 2>&1 || true
-                ln -sf /dev/mapper/vg_mysql-lv_mysql_data /dev/vg_mysql/lv_mysql_data 2>&1 || true
-            fi
+        # Always ensure device nodes are created properly
+        echo "[init] Ensuring device nodes exist..."
+        # Get info and create device nodes
+        DM_MAJOR=$(awk '/device-mapper/ {print $1}' /proc/devices 2>/dev/null || echo "253")
+        DM_MINOR=$(dmsetup info -c -o Minor --noheadings vg_mysql-lv_mysql_data 2>/dev/null | tr -d ' ')
+        echo "[init] DM device: major=$DM_MAJOR minor=$DM_MINOR"
+        
+        if [ -n "$DM_MINOR" ] && [ -n "$DM_MAJOR" ]; then
+            mkdir -p /dev/mapper /dev/vg_mysql
+            # Create the raw dm device node
+            rm -f "/dev/dm-$DM_MINOR" 2>/dev/null || true
+            mknod "/dev/dm-$DM_MINOR" b "$DM_MAJOR" "$DM_MINOR" 2>&1 || true
+            echo "[init] Created /dev/dm-$DM_MINOR"
+            # Create mapper device - use the dm device directly, not a symlink
+            rm -f /dev/mapper/vg_mysql-lv_mysql_data 2>/dev/null || true
+            mknod /dev/mapper/vg_mysql-lv_mysql_data b "$DM_MAJOR" "$DM_MINOR" 2>&1 || true
+            echo "[init] Created /dev/mapper/vg_mysql-lv_mysql_data"
+            # Create VG symlink
+            rm -f /dev/vg_mysql/lv_mysql_data 2>/dev/null || true  
+            ln -sf "/dev/dm-$DM_MINOR" /dev/vg_mysql/lv_mysql_data 2>&1 || true
+            echo "[init] Created symlink /dev/vg_mysql/lv_mysql_data -> /dev/dm-$DM_MINOR"
+        else
+            echo "[init] ERROR: Could not get DM minor number"
+            dmsetup info vg_mysql-lv_mysql_data 2>&1 || true
         fi
     else
         echo "[init] All lvcreate attempts failed, using dmsetup fallback..."
@@ -214,15 +321,16 @@ else
 fi
 
 # Verify the LV exists and is accessible
-LV_DEV="/dev/vg_mysql/lv_mysql_data"
-if [ ! -e "$LV_DEV" ]; then
-    LV_DEV="/dev/mapper/vg_mysql-lv_mysql_data"
-fi
+# Use the device we just created - the DM minor from lvcreate
+LV_DEV="/dev/dm-$DM_MINOR"
 
-if [ -e "$LV_DEV" ]; then
-    echo "[init] LV device exists: $LV_DEV"
+# Verify the device node we created works
+echo "[init] Verifying LV device: $LV_DEV"
+if [ -b "$LV_DEV" ]; then
+    echo "[init] LV device exists and is a block device: $LV_DEV"
 else
-    echo "[init] ERROR: LV device not found"
+    echo "[init] ERROR: LV device $LV_DEV is not a block device"
+    ls -la "$LV_DEV" 2>&1 || echo "Device does not exist"
     exit 1
 fi
 
@@ -232,6 +340,9 @@ echo "[init] LV created successfully"
 echo "[init] Formatting as ext4 using: $LV_DEV"
 mkfs.ext4 -F "$LV_DEV" 2>&1 || {
     echo "[init] ERROR: Failed to format LV"
+    echo "[init] Device info:"
+    ls -la "$LV_DEV" 2>&1 || true
+    file "$LV_DEV" 2>&1 || true
     exit 1
 }
 
@@ -252,11 +363,27 @@ chown -R mysql:mysql /mnt/lv_mysql
 echo "[init] Unmounting from /mnt/lv_mysql..."
 umount /mnt/lv_mysql
 
-# Verify device still exists after unmount
-echo "[init] Checking device after unmount..."
+# Device nodes may disappear after unmount in container - recreate them
+echo "[init] Recreating device nodes after unmount..."
+DM_MAJOR=$(awk '/device-mapper/ {print $1}' /proc/devices 2>/dev/null || echo "253")
+# Query dmsetup for the current minor number
+DM_MINOR=$(dmsetup info -c -o Minor --noheadings vg_mysql-lv_mysql_data 2>/dev/null | tr -d ' ')
+echo "[init] After unmount: DM major=$DM_MAJOR minor=$DM_MINOR"
+
+if [ -n "$DM_MINOR" ]; then
+    mkdir -p /dev/mapper /dev/vg_mysql
+    rm -f "/dev/dm-$DM_MINOR" /dev/mapper/vg_mysql-lv_mysql_data /dev/vg_mysql/lv_mysql_data 2>/dev/null
+    mknod "/dev/dm-$DM_MINOR" b "$DM_MAJOR" "$DM_MINOR" 2>&1 || true
+    mknod /dev/mapper/vg_mysql-lv_mysql_data b "$DM_MAJOR" "$DM_MINOR" 2>&1 || true
+    ln -sf "/dev/dm-$DM_MINOR" /dev/vg_mysql/lv_mysql_data 2>&1 || true
+    LV_DEV="/dev/dm-$DM_MINOR"
+    echo "[init] Recreated device nodes: $LV_DEV"
+else
+    echo "[init] WARNING: dmsetup can't find vg_mysql-lv_mysql_data after unmount"
+    dmsetup ls 2>&1 || true
+fi
+
 ls -la "$LV_DEV" 2>&1 || true
-ls -la /dev/vg_mysql/ 2>&1 || true
-ls -la /dev/mapper/ 2>&1 | grep vg_mysql || true
 
 # Try both device paths for final mount
 if mount "$LV_DEV" /var/lib/mysql 2>&1; then

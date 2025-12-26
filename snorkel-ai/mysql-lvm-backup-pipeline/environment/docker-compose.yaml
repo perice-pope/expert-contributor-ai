@@ -11,6 +11,7 @@ services:
     command: [ "sh", "-c", "/usr/local/bin/init-lvm.sh || true; exec tail -f /dev/null" ]
     environment:
       - TEST_DIR=${TEST_DIR}
+      - ENV_VERIFIER_LOGS_PATH=${ENV_VERIFIER_LOGS_PATH}
     volumes:
       - ${HOST_VERIFIER_LOGS_PATH}:${ENV_VERIFIER_LOGS_PATH}
       - ${HOST_AGENT_LOGS_PATH}:${ENV_AGENT_LOGS_PATH}

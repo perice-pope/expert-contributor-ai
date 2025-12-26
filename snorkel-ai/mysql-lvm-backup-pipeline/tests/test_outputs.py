@@ -90,7 +90,6 @@ def test_backup_log_file_exists():
 def test_retention_policy_enforced():
     """Test that retention policy keeps only last 7 backups."""
     backup_dir = Path("/backups/mysql")
-    backup_dirs = sorted([d for d in backup_dir.iterdir() if d.is_dir() and d.name.startswith("backup_")], reverse=True)
     
     # Run backup multiple times to test retention
     backup_script = Path("/app/backup_mysql.sh")
