@@ -1,0 +1,99 @@
+MEMDUMP_v2
+==================================================
+[Region 0x100] fake_heap_1
+-----BEGIN PGP PRIVATE KEY BLOCK-----
+XXXXcorruptedXXXX
+-----END PGP PRIVATE KEY BLOCK-----
+
+[Region 0x110] fake_cache_2
+----BEGIN PGP PRIVATE KEY BLOCK----
+almostValidButWrongDelimiters123==
+----END PGP PRIVATE KEY BLOCK----
+
+[Region 0x120] fake_incomplete_3
+-----BEGIN PGP PRIVATE KEY BLOCK-----
+ThisIsIncompleteNoEndMarker12345==
+
+[Region 0x200] gpg keyring buffer 1/3
+_hdr_
+-----BEGIN PGP PRIVATE KEY BLOCK-----
+lQOYBGlFxcQBCACcUqYsROBuR6rsKum/l0ci037IemH5jyBwDM+Zpjuct3/CQPtL
+LG0d+zic2UHme5dhY3n0Jb5Kk4pqKNNEeuHfRLjHDejzg8chFbCEOT+U8CMYe/Xj
+56zstG7cA4CUTmDt9Lk70IRFJQZgBq4pg0AXSpMFs+0Q3FQNfmPbmHc/MjAD24P9
+P5ogAP/Z9bjbasUhKv4X/AotJiwPRnwSdprZU3c8EEIiES7RKSKd1SuU4cZk9kU9
+P6mP/hPx2ARHmWL0jLsE41fCw726YZhDtolEZ4JVXU6GCWtpoQ9qnqva5byE3O4O
+owNHZFVsq/Z14zAn5J/zeYsjbSjA/UgRUiwxABEBAAEAB/oDwgrjoo5AqHFn9woi
+hHj90dbI7ARB8xplBzHQcEoblN+55EUGRB2lbF4qiyCF8W+stC8A2w1tjolzzuJx
+UYDvlJ/ajS+N9xuI5JQXQacRJgq58nTxUyb5k8bcfCsRpaa34bu4P+WGIgM6uL5k
+Ghcm2DCboP0wfBN7NZAh/dLUDo+w2sOCdI6cPglna6HwoQR8RiyOh6hENy01+Cpa
+cZm3AmkSDFX3pCtKGjkfcv25zBoLm9dqdvQRbSjSbvSy1d9RUGSSpEFH5QDgUW8D
+Hch8Roh0K05du56VvvDk7u80GWAnQUS6jXB0iUGRTEJtYbby6obmehiErYuRFH+5
+IY9JBADDCoKKHa1rUOqsg5wK3xmkAV/tHr8jfMMmetiTg02vhscaHmwOrsBnDx2k
+nzMOQdBeUwNRrebcq+5Pg8Ity/T9u7WDGbyo6nY/6ctvm/qRPNJ8TOfAomyUr66y
+4oTUTAk/tWTdQ2YsMtJQIHvj8IdtBggknEiooaZsdKCF49fhDQQAzS4+rNGBRf7/
+T0g1OUbTGe1lYFDdjb9YTz6TENapgLZgep01tOA93Jf1W3Ac2IuPhdo755E8mnU1
+LjHWm8cGbp22K6UljuRH13S6/Wzdll1fckxrEWq5TcVREbnub3qeYEXF5mnhRuBL
+zxlba4qdworVHlDF9+kwjomcFGAgxrUD/jU/9tw5RcZIlXkkTuZYm0qmJuHoUHJZ
+3JNAfvAd2FoveHUqwUTe+QST7HfWStJt6CCT0Q2mMNjxoTp2T7vWGSpYrKqTJ9PX
+lrmsZEcONNuouD3KlWjOK6APUgr7+XmHuHSYS4aQ0ZVi3T2YWTwmtzUIulCDJN+h
+6hqzwxIC1/y/QiO0HFRlc3QgVXNlciA8dGVzdEBleGFtcGxlLmNvbT6JAU4EEwEK
+_end_
+
+[Region 0x300] stack_noise
+stack_datastack_datastack_datastack_datastack_datastack_datastack_datastack_datastack_datastack_datastack_datastack_datastack_datastack_datastack_datastack_datastack_datastack_datastack_datastack_data
+
+[Region 0x400] gpg keyring buffer 2/3
+_hdr_
+ADgWIQT6zcL8bH65w/8azMnx2ogjaFwTnQUCaUXFxAIbLwULCQgHAgYVCgkICwIE
+FgIDAQIeAQIXgAAKCRDx2ogjaFwTnU5GB/sE55KnRkc7KL/2fDKukIXIAFomA5Xl
+C0F0xzmPVHyGC0YmNH6d1o8NVYFhcjfEqWyz4U3U6fwEIcMWXbrbFikAGkwiJytY
+AxpPb8wrHEnpUVC2UKycRxvy5XtfwtLsDVcETdyMTRv3RlU9FPOKsV5QkngLwg6l
+PXnzNaVOe8vOvmtwNr3S9Zrk+JKkrssti1hlH5Eb79+IUG/PzO7bPOsuKlBeyBHV
+hU8akbUpxOD0h0v1h1TnSwXHRBK1GvghzE6QbvONmivo9nHms+Um7dHcPmoPTncf
+f7iMpUXt8KS03oybTLv0IgOFQLt3fNMawwLsLV3CZ8I+LjPsS8ywhrIjnQOYBGlF
+xcQBCADLCypA+anE31yOOuiLDc80ynZ0Y82xJIjB/6siojJcGmfRKJKGKEP0QvyT
+UM7BIHw/m+XrkHgdQbWwBvt30v/F1lH6u7kWgBeFl0HTKhEZCRL2Bsq3ZqpfOEDv
+i+591bT9ZkIE9Z81tJ/OMZEOc+psrT+IeQZ1g6y4SabLAl4UX0w7f9/+aD+HXRxp
+qjYRZJ2yPbICe54rzKCjFI/vB0T8HFk424EdBmEPeyUeHDGtlJRJpucIurdR5MYf
+sfOn/u8zU07HSeAJB6lDwNcWpyZWZmTFNAF3up3wG02R1+kV9cTU8f5ea+tkOI+o
+GKkybW/RNB7kvB08Iy7rPypNYQ/hABEBAAEAB/9kON2hdtrKt6n69q7kPGvD1hAE
+QWM9hhgPEkEJ9l+/QLVv84PnvqZUQmBj4uY7Q+qwhyZFUWlIn6+r9LZZngfsQm7y
+wYiJx65UnaW7Mq9/2Q/H6vBS+NUt7Rl4ZGzTJhKRZdE+m3L70m1zHNpJ9QOIozeS
+CJMcnGM8D/bJjCCeEs6skLHnVbXyt3dKwAlpA9jhE26i3zhiR5zzMsksx37HYBKL
+biDwnRZF9557kRQM4KCBTwGRZ11ZiFI1l7CTD1ASc7DJB+BqkL0gt91DiYgr8skO
+1IOZY6W0OSc1rstL1AnqIH4e91ucfm5cIw2GV9zMiOtw53qFWs6uMox9LEB1BADY
+LBcVybSn7t+jpc4aMuBDkWXnb7eoOfPp5/DX95HmG7Sfae7+tpVbImBfoJom5NnI
+MmVCf3Mk4b3YRPnyGOYgy/ZGRX0S7/sFVCLSuqbCb9kXZqExnSRrRM1JwVJnvf+a
+_end_
+
+[Region 0x450] env
+GNUPGHOME=/root/.gnupg
+
+[Region 0x500] gpg keyring buffer 3/3
+_hdr_
+WfOxLHrZf27Ph7VOdFlBJY9vzrKvZ/hMTD5bPCgptwQA8HPa2qZ4yIXLcf0/TkNf
+/U8oyEScafqtoT0p311LYlHvqPCzu87g1iqoenWGyxpcqS0YGs+f+lJqPrmd2ZrP
+X8OppNADgUX1VkR1wp3+01xzUk+EYcJkgdKrJ9bF9mHV0RoWRSi366nxCQPZGt4y
+i8ei4TqHCig7aKOxtMGm8ycD/jrw+m1pbcuAtD3wKwL10PdDLxVqA0aTPw0b3s2+
+C8ZXbhkCnUsnWOys9KosItQ2PmvBWnb4ITT99bECC21g2sIHJRw1iiQrC4g+umCe
+EyojHhdCv+yYK+E6282NwbLVlVKqbCwElYhpdrcI5Q1FZqNPPVKrvKD5zxKMl+8F
+nBkqSCqJAmwEGAEKACAWIQT6zcL8bH65w/8azMnx2ogjaFwTnQUCaUXFxAIbLgFA
+CRDx2ogjaFwTncB0IAQZAQoAHRYhBCjZvz6MGS44P17t6oxBgprSOcV4BQJpRcXE
+AAoJEIxBgprSOcV4D70H/iGJFa5R+aaswrKOB6jLo5Lh4QgzWYipuoOFLa3gnMOW
+HyKTlxpr1WkydcI7UcJp5ujbmulzEqbpqGb+4uGuEFd90YQrgruxOPSLcRqlFtun
+JVz17HxjAG51i1PE0aCTlSy/2b5Se0thG8xCTYfGNmAQWHhyVJFOl2rdHGdxqmHC
+MznKv+0Me9JWBRIipSprR26Iih19uUNzY4twv1/SeplC42RvVsxBtSs/fe+1Y2qv
+aIIis5dAKnW5WAktyDuy0R1tHZrk6ET86vp6WnsumycKMgQz9TWCURa6BYRhZg0f
+IIF1ScBrqfS/nv2/ycjdy4UtycbzCw7EG4MjJ8+pKjJZ5gf/Q3yLmnREc8+c1+pc
+rK7B4EXxCy/6E+BHRVApyNNNb45FhjtCo4mo3GO0PcAGAbnJ5QqFAI6RVjO8hGDw
+fTY/ZhGS7b41gpgHJ1t66SyrTtIONxYuHFQ8AlmDwHvHp/HdOSlnjQ3z/vwmgWu5
+tngtieCMDxDRpRbNuYcmBViVaHPFjud+Tqx96Fn89RXZOZghxdcqvHSEDiHyJ78J
+vYWjxhuVgLXOK87r6OZTtWdUl8V3CrtSL5vMmfk6W2aZR6zUFwI+XVW988NlGfs3
+AP/TIn87wZ9ONMG1qYwE9rf8b3SukijmFhDOfRX3CfECx2nGDnwZXwy6ZlLg9khZ
+wKJZDg==
+=J/TS
+-----END PGP PRIVATE KEY BLOCK-----
+_end_
+
+==================================================
+DUMP_END
