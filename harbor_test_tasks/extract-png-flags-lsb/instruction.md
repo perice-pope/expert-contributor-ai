@@ -4,10 +4,10 @@ A forensic analyst has captured a raw memory dump from a compromised system. Int
 
 ## Requirements
 
-1. **Analyze memory dump**: Examine `/app/memdump.raw` to identify and extract any embedded PNG images. The dump may contain noise, partial data, or corrupted regions.
+1. **Analyze memory dump**: Examine `/app/memdump.raw` to identify and extract any embedded PNG images. The dump contains noise, partial data, corrupted regions, and red herrings.
 2. **Extract valid images**: Save any complete, valid PNG images found to `/app/images/` with sequential filenames (e.g., `image_0.png`, `image_1.png`, etc.).
-3. **Recover hidden data**: Investigate the extracted images for hidden information. Images may contain steganographically encoded ASCII text flags. Note that the hidden data may be obfuscated or encoded.
-4. **Document findings**: Write all recovered flags to `/app/flags.txt`. Format: one flag per line with the byte offset where the image was found (e.g., `0x1234: FLAG{example}`).
+3. **Recover hidden data**: Investigate the extracted images for hidden information. The hidden data may use various encoding or obfuscation techniques that you must identify and reverse.
+4. **Document findings**: Write all recovered data to `/app/flags.txt`. Format: one entry per line with the byte offset where the image was found (e.g., `0x1234: <recovered_data>`).
 
 ## Constraints
 
@@ -19,21 +19,20 @@ A forensic analyst has captured a raw memory dump from a compromised system. Int
 
 ## Files
 
-- Memory dump: `/app/memdump.raw` (binary file that may contain embedded images)
-- Starter script: `/app/extract_flags.py` (minimal skeleton - you must implement the logic)
+- Memory dump: `/app/memdump.raw` (binary file containing embedded images among other data)
+- Starter script: `/app/extract_flags.py` (minimal skeleton)
 - Output directory: `/app/images/` (save extracted PNG files here)
-- Flags output: `/app/flags.txt` (write recovered flags with offsets here)
+- Output file: `/app/flags.txt` (write recovered data with offsets here)
 
 ## Outputs
 
 - `/app/images/image_*.png` (extracted PNG image files)
-- `/app/flags.txt` (text file with recovered flags; format: `0x<offset>: <flag_text>`)
+- `/app/flags.txt` (text file with recovered data; format: `0x<offset>: <data>`)
 
 ## Notes
 
-- The memory dump may contain various data structures, partial files, and noise
-- Not all PNG-like byte patterns may represent valid images
-- At least 3 valid images with hidden flags are expected to be recoverable
-- Flags follow the format `FLAG{...}` and contain ASCII text
-- The memory dump itself may contain clues about how data was encoded
-- Pay attention to relationships between image locations and any encoding used
+- The memory dump contains various data structures, partial files, noise, and decoys
+- Not all PNG-like byte patterns represent valid images
+- Hidden data may be encoded, obfuscated, or split across multiple sources
+- The complete solution requires careful analysis and may involve multiple steps
+- Pay attention to the order of extracted data

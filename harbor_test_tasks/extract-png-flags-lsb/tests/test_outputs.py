@@ -77,28 +77,36 @@ def test_flags_file_format():
 
 
 def test_all_expected_flags_present():
-    """Verify all expected flags are present in the output."""
+    """Verify all expected flag parts are present and combine correctly."""
     flags_path = Path("/app/flags.txt")
     content = flags_path.read_text(encoding="utf-8")
     
-    # Expected flags (must be present) - XOR-encoded LSB extraction
-    expected_flags = [
-        "FLAG{xor_reveals_the_truth}",
-        "FLAG{offset_is_the_key}",
-        "FLAG{forensics_master}"
+    # Expected flag parts (split across 3 images with different encodings)
+    # Combined: FLAG{expert_forensics_challenge}
+    expected_parts = [
+        "FLAG{expert_",      # Image 1: Multi-byte XOR
+        "forensics_",        # Image 2: ROT13
+        "challenge}",        # Image 3: Base64
     ]
     
-    found_flags = []
+    found_parts = []
     for line in content.strip().split('\n'):
-        if ':' in line:
-            flag_text = line.split(':', 1)[1].strip()
-            found_flags.append(flag_text)
+        if ':' in line and not line.startswith('#'):
+            part_text = line.split(':', 1)[1].strip()
+            found_parts.append(part_text)
     
-    for expected_flag in expected_flags:
-        assert expected_flag in found_flags, (
-            f"Expected flag '{expected_flag}' not found in flags file. "
-            f"Found flags: {found_flags}"
+    for expected_part in expected_parts:
+        assert expected_part in found_parts, (
+            f"Expected flag part '{expected_part}' not found in flags file. "
+            f"Found parts: {found_parts}"
         )
+    
+    # Verify combined flag is correct
+    combined = ''.join(found_parts)
+    assert combined == "FLAG{expert_forensics_challenge}", (
+        f"Combined flag incorrect. Expected 'FLAG{{expert_forensics_challenge}}', "
+        f"got '{combined}'"
+    )
 
 
 def test_flag_offsets_are_valid_hex():
