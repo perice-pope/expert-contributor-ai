@@ -781,6 +781,66 @@ Expected Impact:
 - Claude: Should improve from 60% to 80-100% (clear instructions)
 - GPT-5: Should improve from 0% to 50-80% (knows how to implement)
 - Consistency: Agents won't guess - they have specifications
+
+═══════════════════════════════════════════════════════════════════
+REVISION-005 ITERATION 2: Quality Check Fixes (2025-12-27 12:56)
+═══════════════════════════════════════════════════════════════════
+
+Review Issues Identified:
+❌ behavior_in_instruction: Source case mismatch (instruction: lowercase, solution: title case)
+❌ behavior_in_instruction: anomaly_flag case not enforced (instruction: lowercase, solution: Python boolean)
+❌ behavior_in_tests: Missing tests for exact case enforcement
+❌ behavior_in_tests: Missing EDT timezone conversion test
+❌ behavior_in_tests: Missing JSON-only-flagged-events test
+❌ behavior_in_tests: Missing exact anomaly_type string test
+
+Agent Failures (All 0%):
+❌ NOP: 0/1 (correct - should fail)
+❌ Claude: 0/1 (unexpected - might be due to case mismatch)
+❌ Codex: 0/1 (unexpected - might be due to case mismatch)
+
+Fixes Applied:
+
+1. instruction.md (Case Alignment)
+   ✓ Changed source values: 'mft'/'evtx'/'prefetch' → 'MFT'/'EVTX'/'Prefetch' (title case)
+   ✓ Clarified anomaly_flag: Must be lowercase string 'true'/'false' (not Python boolean)
+   ✓ Added EDT timezone handling: EST=UTC-5, EDT=UTC-4 (both must be supported)
+
+2. solution/solve.sh (Anomaly Flag Fix)
+   ✓ Fixed CSV writing: Convert Python boolean to lowercase string
+     Before: event.get('anomaly_flag', False) → writes "True"/"False"
+     After: 'true' if anomaly_flag else 'false' → writes "true"/"false"
+   ✓ Added EDT timezone support: Parse both EST and EDT timestamps correctly
+
+3. tests/test_outputs.py (5 New Tests Added - Total: 23)
+   ✓ test_source_values_exact_case() - Enforce MFT/EVTX/Prefetch (title case)
+   ✓ test_anomaly_flag_exact_lowercase() - Enforce lowercase 'true'/'false'
+   ✓ test_edt_est_timezone_conversion() - Verify both EST and EDT → UTC conversion
+   ✓ test_json_only_flagged_events() - Ensure JSON contains only flagged events
+   ✓ test_anomaly_type_exact_strings() - Enforce exact anomaly_type strings
+   ✓ Fixed test_specific_input_events_in_timeline() - Use exact case (MFT/EVTX/Prefetch)
+
+Oracle Test Results: ✅ 23/23 PASSED (0.09s)
+- All original 18 tests: ✅ Passing
+- 5 new quality check tests: ✅ Passing
+- Source case: ✅ MFT/EVTX/Prefetch enforced
+- Anomaly flag: ✅ Lowercase 'true'/'false' enforced
+- EDT/EST: ✅ Both timezones handled correctly
+
+Quality Check Status:
+✅ behavior_in_instruction: FIXED (instruction matches solution)
+✅ behavior_in_tests: FIXED (all requirements now tested)
+✅ anti_cheating_measures: Already fixed (from iteration 1)
+✅ test_deps_in_image: Already fixed (from iteration 1)
+
+Expected Agent Impact:
+- Agents now have correct case specifications (MFT/EVTX/Prefetch)
+- Agents know anomaly_flag must be lowercase string
+- Agents can handle both EST and EDT timestamps
+- Tests enforce exact requirements (no lenient matching)
+
+Package: windows-artifact-timeline-submission-revised.zip (35KB)
+Status: Ready for re-testing with agents
 ```
 
 ---
