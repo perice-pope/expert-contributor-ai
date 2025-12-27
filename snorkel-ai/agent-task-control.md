@@ -286,19 +286,21 @@ Template:
 
 ---
 
-## CI / Evaluation Checks
+## CI / Evaluation Checks (ALL 10 REQUIRED)
 
-- [ ] behavior_in_task_description  
+- [ ] behavior_in_instruction  
   (EVERY behavior checked by tests is explicitly described in instruction.md)
 
 - [ ] behavior_in_tests  
   (EVERY behavior described in instruction.md is exercised by tests)
+  ⚠️ Tests must verify EXECUTION, not just string presence!
 
 - [ ] informative_test_docstrings  
   (Each test clearly states what behavior it validates)
 
 - [ ] anti_cheating_measures  
   (Agent cannot trivially bypass task by reading files, hardcoding outputs, or inspecting solutions)
+  ⚠️ Verify outputs against actual system state (API calls), not just file contents!
 
 - [ ] structured_data_schema (if applicable)  
   (Exact schema is documented in task.yaml or an explicitly referenced file)
@@ -593,14 +595,20 @@ harbor tasks check -m openai/gpt-4o harbor_tasks/<task-name>
 harbor tasks check -m openai/gpt-4o -o quality-results.json harbor_tasks/<task-name>
 ```
 
-**Key checks that must pass:**
-- `behavior_in_instruction` - Tests only assert behaviors stated in instruction.md
-- `behavior_in_tests` - All instruction requirements have corresponding tests
-- `informative_test_docstrings` - Every test has a docstring
-- `anti_cheating_measures` - Agent can't trivially bypass
-- `structured_data_schema` - Output formats documented
-- `pinned_dependencies` - All versions pinned
-- `file_reference_mentioned` - Test file paths in instructions
+**All 10 quality checks that must pass:**
+
+| Check | What It Validates |
+|-------|-------------------|
+| `behavior_in_instruction` | Tests only assert behaviors explicitly stated in instruction.md |
+| `behavior_in_tests` | All instruction requirements have corresponding tests |
+| `informative_test_docstrings` | Every test has a descriptive docstring |
+| `anti_cheating_measures` | Agent can't trivially bypass (no hardcoding, no file inspection) |
+| `structured_data_schema` | Output formats/schemas documented (if applicable) |
+| `pinned_dependencies` | All Python/npm dependencies version-pinned |
+| `typos` | No typos in filenames, variables, paths, or instructions |
+| `test_deps_in_image` | Test-only deps installed at test time, not build time |
+| `hardcoded_solution` | Solution derives results via computation, not echo/cat |
+| `file_reference_mentioned` | All files in tests are mentioned in instructions |
 
 **Anti-Cheating Verification Checklist** (review before submission):
 

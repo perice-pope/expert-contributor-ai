@@ -409,9 +409,6 @@ def test_emulator_state_matches_output_files():
     exist and match what's reported in output files. Prevents agents from 
     hardcoding expected bucket/topic/container names without real API calls.
     """
-    import urllib.request
-    import urllib.error
-    
     ensure_emulators()
     verify_emulators_running()
     seed_defaults()
