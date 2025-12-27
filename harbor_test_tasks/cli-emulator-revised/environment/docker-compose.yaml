@@ -1,0 +1,23 @@
+services:
+  main:
+    build:
+      # Harbor sets CONTEXT_DIR to the task's `environment/` directory by default.
+      # We intentionally build with the task root as the context so the Dockerfile
+      # can `COPY app/ /app/` without duplicating files under `environment/`.
+      context: ${CONTEXT_DIR}/..
+      dockerfile: ${CONTEXT_DIR}/Dockerfile
+    image: ${MAIN_IMAGE_NAME}
+    command: [ "sh", "-c", "sleep infinity" ]
+    environment:
+      - TEST_DIR=${TEST_DIR}
+    volumes:
+      - ${HOST_VERIFIER_LOGS_PATH}:${ENV_VERIFIER_LOGS_PATH}
+      - ${HOST_AGENT_LOGS_PATH}:${ENV_AGENT_LOGS_PATH}
+    deploy:
+      resources:
+        limits:
+          cpus: ${CPUS}
+          memory: ${MEMORY}
+
+
+
