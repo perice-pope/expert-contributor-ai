@@ -67,6 +67,7 @@ These steps CANNOT be marked `[x]` without evidence in STATE.md:
 | 7 | Command output showing `reward.txt = 1` |
 | 8 | Run logs for ≥2 models, 2-3 times each, with outcomes |
 | 9 | CI check output showing all checks PASS |
+| 9.5 | Static check output showing no errors (ruff/run_static_checks.py) |
 
 ### Lock Status Markers
 
@@ -134,6 +135,7 @@ STATE = INCOMPLETE
 | Step 8: Real agents (Model 1) | ⬜ NOT VERIFIED | (paste run outcome) |
 | Step 8: Real agents (Model 2) | ⬜ NOT VERIFIED | (paste run outcome) |
 | Step 9: CI checks | ⬜ NOT VERIFIED | (paste all checks PASS) |
+| Step 9.5: Static checks | ⬜ NOT VERIFIED | (paste ruff/static check output) |
 
 🔒 **PACKAGING LOCKED** — Step 12 blocked until ALL show ✅ VERIFIED
 
@@ -154,6 +156,7 @@ Legend: [x]=complete with evidence, [~]=needs re-verification, [ ]=incomplete, [
 - [ ] 7 - Run Oracle Agent
 - [ ] 8 - Test With Real Agents
 - [ ] 9 - Run CI / LLMaJ Checks
+- [ ] 9.5 - Run Static Code Checks
 
 ### Validation
 - [ ] 10 - Final Verification
@@ -453,6 +456,7 @@ Before submitting to CI, run these tests locally in order:
 | 2. Oracle | `harbor run -a oracle -p <task>` | Solution passes all tests | reward = 1 |
 | 3. NOP | `harbor run -a nop -p <task>` | Task isn't trivially solvable | reward = 0 |
 | 4. Quality | `harbor tasks check -m openai/gpt-4o <task>` | CI quality checks pass | All checks pass |
+| 4.5. Static | `ruff check <task>/tests/` | No unused imports, syntax errors | No errors |
 | 5. Agents | `harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -k 3 -n 1 <task>` | Difficulty assessment | 40-70% for MEDIUM |
 
 ### Quick Commands
@@ -469,6 +473,10 @@ harbor run -a nop -p harbor_tasks/<task-name>
 
 # Phase 4: Quality checks (CRITICAL - run before agents!)
 harbor tasks check -m openai/gpt-4o harbor_tasks/<task-name>
+
+# Phase 4.5: Static code checks (catches unused imports, syntax errors)
+ruff check harbor_tasks/<task-name>/tests/
+# Or: python run_static_checks.py --task-dir harbor_tasks/<task-name>
 
 # Phase 5: Agent difficulty (Claude)
 harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p harbor_tasks/<task-name> -k 3 -n 1
@@ -628,6 +636,41 @@ If any check fails, fix it before proceeding.
 
 ---
 
+### Step 9.5: Run Static Code Checks (CRITICAL - Catches Syntax/Lint Errors)
+
+Run **static code analysis** to catch issues CI will find:
+
+```bash
+# Option 1: Use CI's static check script (if available)
+python run_static_checks.py --task-dir harbor_tasks/<task-name>
+
+# Option 2: Run ruff directly (catches unused imports, syntax errors)
+ruff check harbor_tasks/<task-name>/tests/
+ruff check harbor_tasks/<task-name>/app/ 2>/dev/null || true  # if app/ exists
+
+# Option 3: Run ruff with auto-fix for simple issues
+ruff check --fix harbor_tasks/<task-name>/tests/
+```
+
+**What this catches:**
+- ❌ Unused imports (F401) - **This is what we missed!**
+- ❌ Syntax errors
+- ❌ Undefined variables
+- ❌ Other code quality issues
+
+**Common errors to fix:**
+- `F401 [*] 'module' imported but unused` → Remove unused import
+- `F841` → Remove unused variable
+- Syntax errors → Fix code
+
+⚠️ **CI runs `run_static_checks.py` which includes ruff - if this fails locally, CI will fail too!**
+
+* Run static checks
+* Fix all errors (or verify they're acceptable)
+* Mark Step 9.5 complete
+
+---
+
 ### Step 10: Final Verification
 
 Confirm:
@@ -647,6 +690,7 @@ Mark Step 10 complete
 * Validate test flags
 * Validate forbidden files
 * Validate file structure
+* **Static code checks pass** (ruff, syntax validation) - see Step 9.5
 
 Mark Step 11 complete
 

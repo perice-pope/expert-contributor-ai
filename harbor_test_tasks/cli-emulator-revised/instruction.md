@@ -20,33 +20,32 @@ Fix the CLI configuration scripts so that all three cloud tools (AWS, gcloud, Az
 
 1. **Profile isolation**: Default profiles must remain untouched (tests will verify)
 2. **Persistence**: Configurations must survive shell restarts (write to config files)
-3. **Orchestration**: Create `/app/bin/configure_all.sh` to run all three configuration scripts
+3. **Orchestration**: Create `/app/bin/configure_all.sh` to run all three configuration scripts in sequence
 4. **Format compliance**: Each tool has specific config file format requirements (see below)
+5. **Idempotency**: Configuration scripts should be safe to run multiple times - they must not fail if profiles already exist or if emulators are already running
 
 ## Tool-Specific Configuration Details
 
 ### AWS (`localstack` profile)
 - **Config files**: `/root/.aws/config` and `/root/.aws/credentials`
 - **Format**: INI format
-- **Required in credentials**: `[localstack]` section with `aws_access_key_id` and `aws_secret_access_key`
-- **Required in config**: `[profile localstack]` section with `s3.endpoint_url = http://127.0.0.1:4566`
+- **Required in credentials**: Named profile `localstack` with access key and secret key
+- **Required in config**: Named profile `localstack` with S3 endpoint URL set to `http://127.0.0.1:4566`
 
 ### gcloud (`pubsub-emulator` configuration)
 - **Config file**: `/root/.config/gcloud/configurations/config_pubsub-emulator`
 - **Project name**: `tbench-local`
 - **Required settings**:
-  - `[core]` section with `project = tbench-local`
-  - `[api_endpoint_overrides]` section with `pubsub = http://127.0.0.1:8085/`
-  - `[auth]` section with `disable_credentials = true` (CRITICAL: required for offline emulator operation)
+  - Project must be set to `tbench-local`
+  - Pub/Sub API endpoint must be overridden to `http://127.0.0.1:8085/`
+  - Authentication must be disabled for offline emulator operation (set `auth/disable_credentials = true`)
 - **⚠️ DO NOT ACTIVATE**: Never run `gcloud config configurations activate pubsub-emulator`. The file `/root/.config/gcloud/active_config` must remain set to `default`. Use `--configuration pubsub-emulator` flag on gcloud commands instead.
 
 ### Azure (`azurite` profile)
 - **Config file**: `/root/.azure/config`
 - **Format**: INI format
 - **Account**: Use Azurite's well-known development account: `devstoreaccount1`
-- **Required in config**: `[azurite]` section with:
-  - `account_name = devstoreaccount1`
-  - `blob_endpoint = http://127.0.0.1:10000/devstoreaccount1`
+- **Required in config**: Named profile `azurite` with account name and blob endpoint configured for `http://127.0.0.1:10000/devstoreaccount1`
 
 ## Execution Order (CRITICAL)
 
@@ -60,7 +59,9 @@ The emulators must be running and ready BEFORE any CLI commands are executed aga
 3. **Then configure**: Only run configuration scripts after emulators are ready
 4. **Then verify**: Run verification after configuration is complete
 
-If you see `ConnectionError` or `HTTPConnectionPool` errors, the emulator wasn't ready when the command ran.
+⚠️ **IMPORTANT**: The `verify_all.sh` script must ensure emulators are ready before executing CLI commands. Even though `start_emulators.sh` starts the emulators, they may not be immediately ready to accept connections. You must add appropriate waiting logic using the provided `wait_for_ports.py` utility to prevent connection errors.
+
+If you see `ConnectionError` or `HTTPConnectionPool` errors like "Max retries exceeded", the emulator wasn't ready when the command ran. This waiting logic is **required** in verification scripts.
 
 ## Constraints (ENFORCED BY TESTS)
 
@@ -78,13 +79,13 @@ If you see `ConnectionError` or `HTTPConnectionPool` errors, the emulator wasn't
 
 - Starter project: `/app`
 - Individual configuration scripts: `/app/bin/configure_aws.sh`, `/app/bin/configure_gcloud.sh`, `/app/bin/configure_azure.sh`
-- Orchestration script to create: `/app/bin/configure_all.sh` (calls all three configure scripts)
+- Orchestration script to create: `/app/bin/configure_all.sh` (must execute all three individual configuration scripts)
 - Config file locations:
   - AWS: `/root/.aws/config` and `/root/.aws/credentials`
   - gcloud: `/root/.config/gcloud/configurations/config_pubsub-emulator`
   - Azure: `/root/.azure/config`
 - Helper utilities: `/app/bin/write_ini_value.py`, `/app/bin/ini_get.py`, `/app/bin/wait_for_ports.py`
-- Verification: `/app/bin/verify_all.sh`
+- Verification: `/app/bin/verify_all.sh` (must include emulator readiness wait - see Execution Order section)
 
 ## Outputs
 
