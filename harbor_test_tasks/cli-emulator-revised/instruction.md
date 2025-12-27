@@ -48,12 +48,17 @@ Fix the CLI configuration scripts so that all three cloud tools (AWS, gcloud, Az
   - `account_name = devstoreaccount1`
   - `blob_endpoint = http://127.0.0.1:10000/devstoreaccount1`
 
-## Constraints
+## Constraints (ENFORCED BY TESTS)
 
-- Offline only (no external network calls)
-- Fix existing scripts in `/app/bin/` - do not replace them entirely
-- Use provided helper utilities appropriately
-- The verification script requires all configurations working together
+⚠️ **These constraints are verified by automated tests - violations will cause failures:**
+
+1. **Fix, don't replace**: Modify the existing scripts in `/app/bin/` to fix their bugs. Do NOT delete and rewrite them from scratch. Each script contains a `MARKER:` comment that must be preserved.
+
+2. **Use helper utilities**: The provided utilities (`write_ini_value.py`, `ini_get.py`) must be used for INI file manipulation. Tests verify at least one script uses `write_ini_value.py`.
+
+3. **Offline only**: No external network calls allowed. The emulators run on localhost - all operations must work without internet access.
+
+4. **Orchestration required**: The `configure_all.sh` script must call all three individual configure scripts.
 
 ## Files
 

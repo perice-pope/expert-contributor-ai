@@ -1,11 +1,13 @@
 #!/bin/bash
 set -euo pipefail
+# MARKER:GCLOUD_CONFIG_SCRIPT_V1 - DO NOT REMOVE THIS LINE
 
 mkdir -p /root/.config/gcloud/configurations
 
 # NOTE: Intended behavior:
 # - create a named configuration "pubsub-emulator"
 # - persist a project + an emulator endpoint override in that configuration
+# FIX THE BUGS BELOW - do not rewrite this script from scratch.
 
 GCLOUD_CONFIG_NAME="pubsub-emulator"
 GCLOUD_PROJECT="tbench-local"

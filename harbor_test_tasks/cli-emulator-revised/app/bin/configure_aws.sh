@@ -1,10 +1,12 @@
 #!/bin/bash
 set -euo pipefail
+# MARKER:AWS_CONFIG_SCRIPT_V1 - DO NOT REMOVE THIS LINE
 
 mkdir -p /root/.aws
 
 # NOTE: This script is *intended* to create a named profile called "localstack".
 # Right now it "mostly works" but something is off — see tests/instructions.
+# FIX THE BUGS BELOW - do not rewrite this script from scratch.
 
 AWS_PROFILE_NAME="localstack"
 AWS_REGION="us-east-1"

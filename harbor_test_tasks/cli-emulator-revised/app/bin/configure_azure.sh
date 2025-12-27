@@ -1,10 +1,12 @@
 #!/bin/bash
 set -euo pipefail
+# MARKER:AZURE_CONFIG_SCRIPT_V1 - DO NOT REMOVE THIS LINE
 
 mkdir -p /root/.azure
 
 # We treat "azurite" as a named profile stored in /root/.azure/config.
 # The helper /app/bin/azure_profile.sh loads the values and runs az storage commands.
+# FIX THE BUGS BELOW - do not rewrite this script from scratch.
 
 AZ_PROFILE_NAME="azurite"
 AZURITE_ACCOUNT_NAME="devstoreaccount1"
