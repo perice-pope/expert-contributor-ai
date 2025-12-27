@@ -237,43 +237,142 @@ def test_scripts_were_fixed_not_replaced():
         "configure_azure.sh was replaced instead of fixed - must retain original marker"
 
 
-def test_orchestration_script_calls_all_configure_scripts():
-    """Verify configure_all.sh orchestrates all three individual configure scripts.
+def test_orchestration_script_actually_executes_all_configure_scripts():
+    """Verify configure_all.sh actually EXECUTES all three individual configure scripts.
     
-    The orchestration script must call each individual configuration script.
-    This test verifies the script contains references to all three scripts.
+    Anti-cheating: Uses execution tracing to prove scripts are called, not just referenced.
+    Creates wrapper scripts that log invocations, then verifies the log after running.
     """
-    configure_all = read_text("/app/bin/configure_all.sh")
+    import os
+    import shutil
     
-    # Must reference all three configure scripts
-    assert "configure_aws.sh" in configure_all, \
-        "configure_all.sh must call configure_aws.sh"
-    assert "configure_gcloud.sh" in configure_all, \
-        "configure_all.sh must call configure_gcloud.sh"
-    assert "configure_azure.sh" in configure_all, \
-        "configure_all.sh must call configure_azure.sh"
+    ensure_emulators()
+    verify_emulators_running()
+    seed_defaults()
+    
+    # Setup: Create execution trace log
+    trace_log = Path("/tmp/script_execution_trace.log")
+    trace_log.unlink(missing_ok=True)
+    
+    # Backup original scripts and create traced wrappers
+    scripts = ["configure_aws.sh", "configure_gcloud.sh", "configure_azure.sh"]
+    for script in scripts:
+        orig = f"/app/bin/{script}"
+        backup = f"/app/bin/{script}.orig"
+        
+        # Backup if not already backed up
+        if not Path(backup).exists():
+            shutil.copy(orig, backup)
+        
+        # Read original content
+        original_content = read_text(backup)
+        
+        # Create traced version that logs execution then runs original
+        traced_content = f"""#!/bin/bash
+# Traced wrapper - logs execution
+echo "{script}" >> /tmp/script_execution_trace.log
+{original_content}
+"""
+        write_text(orig, traced_content)
+        os.chmod(orig, 0o755)
+    
+    try:
+        # Run the orchestration script
+        sh("bash", "/app/bin/configure_all.sh")
+        
+        # Verify all three scripts were actually executed
+        assert trace_log.exists(), \
+            "Execution trace not found - configure_all.sh did not call any configure scripts"
+        
+        trace_content = trace_log.read_text()
+        assert "configure_aws.sh" in trace_content, \
+            "configure_all.sh did not actually execute configure_aws.sh"
+        assert "configure_gcloud.sh" in trace_content, \
+            "configure_all.sh did not actually execute configure_gcloud.sh"
+        assert "configure_azure.sh" in trace_content, \
+            "configure_all.sh did not actually execute configure_azure.sh"
+    finally:
+        # Restore original scripts
+        for script in scripts:
+            orig = f"/app/bin/{script}"
+            backup = f"/app/bin/{script}.orig"
+            if Path(backup).exists():
+                shutil.copy(backup, orig)
+                os.chmod(orig, 0o755)
 
 
-def test_helper_utilities_are_executed():
-    """Verify helper utilities are actually used for INI file manipulation.
+def test_helper_utility_actually_executes():
+    """Verify write_ini_value.py is ACTUALLY EXECUTED during configuration.
     
-    At least one configure script must invoke write_ini_value.py to demonstrate
-    proper use of the provided helper utilities.
+    Anti-cheating: Creates a wrapper script that logs invocations then calls original.
+    Proves the utility runs, not just that scripts mention it.
     """
-    aws_script = read_text("/app/bin/configure_aws.sh")
-    gcloud_script = read_text("/app/bin/configure_gcloud.sh")
-    azure_script = read_text("/app/bin/configure_azure.sh")
+    import os
+    import shutil
     
-    # Check that write_ini_value.py is invoked (not just mentioned in comments)
-    # Look for actual execution patterns like "python" or direct script call
-    all_scripts = aws_script + gcloud_script + azure_script
+    ensure_emulators()
+    verify_emulators_running()
+    seed_defaults()
     
-    # Must contain actual call to write_ini_value.py (with python or direct execution)
-    has_python_call = "python" in all_scripts and "write_ini_value.py" in all_scripts
-    has_direct_call = "/app/bin/write_ini_value.py" in all_scripts
+    helper_path = Path("/app/bin/write_ini_value.py")
+    backup_path = Path("/app/bin/write_ini_value.py.real")
+    trace_log = Path("/tmp/helper_execution_trace.log")
     
-    assert has_python_call or has_direct_call, \
-        "At least one script must execute write_ini_value.py (not just reference it in comments)"
+    # Clear trace log
+    trace_log.unlink(missing_ok=True)
+    
+    # Move original to .real if not already done
+    if not backup_path.exists():
+        shutil.move(str(helper_path), str(backup_path))
+    
+    # Create wrapper that logs then calls original
+    wrapper_content = '''#!/usr/bin/env python3
+"""Wrapper for write_ini_value.py that logs execution."""
+import sys
+import subprocess
+
+# Log this execution
+with open("/tmp/helper_execution_trace.log", "a") as f:
+    f.write(f"EXECUTED: {sys.argv}\\n")
+
+# Call the real script with same args
+result = subprocess.run(
+    ["python3", "/app/bin/write_ini_value.py.real"] + sys.argv[1:],
+    capture_output=True,
+    text=True
+)
+
+# Forward output and exit code
+if result.stdout:
+    print(result.stdout, end="")
+if result.stderr:
+    print(result.stderr, end="", file=sys.stderr)
+sys.exit(result.returncode)
+'''
+    
+    write_text(str(helper_path), wrapper_content)
+    os.chmod(str(helper_path), 0o755)
+    
+    try:
+        # Run configuration
+        sh("bash", "/app/bin/configure_all.sh")
+        
+        # Verify helper was actually executed
+        assert trace_log.exists(), \
+            "Helper utility trace not found - write_ini_value.py was never executed"
+        
+        trace_content = trace_log.read_text()
+        assert "EXECUTED:" in trace_content, \
+            "write_ini_value.py was not actually executed during configuration"
+        
+        # Verify it was called with meaningful arguments (file path, section, key, value)
+        assert "--path" in trace_content and "--section" in trace_content, \
+            "write_ini_value.py was not called with proper arguments"
+    finally:
+        # Restore original
+        if backup_path.exists():
+            shutil.move(str(backup_path), str(helper_path))
+            os.chmod(str(helper_path), 0o755)
 
 
 def test_no_external_network_calls():
@@ -301,6 +400,93 @@ def test_no_external_network_calls():
     sh("bash", "/app/bin/verify_all.sh", env=env_offline)
     
     # If we got here without network errors, the task is truly offline
+
+
+def test_emulator_state_matches_output_files():
+    """Verify output files reflect ACTUAL emulator state, not hardcoded values.
+    
+    Anti-cheating: Queries emulators directly via API to verify that resources
+    exist and match what's reported in output files. Prevents agents from 
+    hardcoding expected bucket/topic/container names without real API calls.
+    """
+    import urllib.request
+    import urllib.error
+    
+    ensure_emulators()
+    verify_emulators_running()
+    seed_defaults()
+    
+    # Delete pre-existing output files
+    for out_file in ["/output/aws_s3_list.txt", "/output/gcloud_pubsub_list.txt", "/output/azure_blob_list.txt"]:
+        Path(out_file).unlink(missing_ok=True)
+    
+    sh("bash", "/app/bin/configure_all.sh")
+    sh("bash", "/app/bin/verify_all.sh")
+    
+    # === AWS: Query LocalStack S3 directly ===
+    try:
+        # Use AWS CLI to list buckets directly from emulator
+        aws_direct = sh(
+            "aws", "s3api", "list-buckets",
+            "--endpoint-url", "http://127.0.0.1:4566",
+            "--profile", "localstack"
+        )
+        aws_direct_data = json.loads(aws_direct)
+        direct_bucket_names = {b["Name"] for b in aws_direct_data.get("Buckets", [])}
+        
+        # Compare with output file
+        aws_out = json.loads(Path("/output/aws_s3_list.txt").read_text())
+        file_bucket_names = {b["Name"] for b in aws_out.get("Buckets", [])}
+        
+        assert "tbench-local-bucket" in direct_bucket_names, \
+            "Bucket does not exist in actual emulator - output file may be faked"
+        assert direct_bucket_names == file_bucket_names, \
+            f"Output file doesn't match emulator state: file={file_bucket_names}, emulator={direct_bucket_names}"
+    except subprocess.CalledProcessError as e:
+        raise AssertionError(f"Failed to query LocalStack directly: {e.stderr}")
+    
+    # === gcloud: Query Pub/Sub emulator directly ===
+    try:
+        gcloud_topics = sh(
+            "gcloud", "pubsub", "topics", "list",
+            "--configuration", "pubsub-emulator",
+            "--format", "value(name)"
+        )
+        gcloud_subs = sh(
+            "gcloud", "pubsub", "subscriptions", "list",
+            "--configuration", "pubsub-emulator", 
+            "--format", "value(name)"
+        )
+        
+        assert "tbench-topic" in gcloud_topics, \
+            "Topic does not exist in actual emulator - output file may be faked"
+        assert "tbench-sub" in gcloud_subs, \
+            "Subscription does not exist in actual emulator - output file may be faked"
+    except subprocess.CalledProcessError as e:
+        raise AssertionError(f"Failed to query Pub/Sub emulator directly: {e.stderr}")
+    
+    # === Azure: Query Azurite directly ===
+    try:
+        # Query Azurite blob containers directly
+        azure_direct = sh(
+            "az", "storage", "container", "list",
+            "--connection-string", 
+            "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;",
+            "--output", "json"
+        )
+        azure_direct_data = json.loads(azure_direct)
+        direct_container_names = {c["name"] for c in azure_direct_data}
+        
+        # Compare with output file
+        azure_out = json.loads(Path("/output/azure_blob_list.txt").read_text())
+        file_container_names = {c["name"] for c in azure_out}
+        
+        assert "tbench-container" in direct_container_names, \
+            "Container does not exist in actual emulator - output file may be faked"
+        assert direct_container_names == file_container_names, \
+            f"Output file doesn't match emulator state: file={file_container_names}, emulator={direct_container_names}"
+    except subprocess.CalledProcessError as e:
+        raise AssertionError(f"Failed to query Azurite directly: {e.stderr}")
 
 
 

@@ -602,6 +602,16 @@ harbor tasks check -m openai/gpt-4o -o quality-results.json harbor_tasks/<task-n
 - `pinned_dependencies` - All versions pinned
 - `file_reference_mentioned` - Test file paths in instructions
 
+**Anti-Cheating Verification Checklist** (review before submission):
+
+| Check | Question to Ask | Bad Test | Good Test |
+|-------|-----------------|----------|-----------|
+| **Execution, not presence** | Do tests verify code runs, not just exists? | `assert "script.sh" in file` | Wrap script, verify wrapper was called |
+| **State verification** | Do tests verify actual system state? | Parse output file for expected string | Query API/DB directly to verify state |
+| **Output origin** | Can agent hardcode expected outputs? | Check file contains "bucket-name" | Verify bucket exists via API call |
+| **Script invocation** | Do orchestration scripts actually call sub-scripts? | Check script contains "subscript.sh" | Use execution tracing/wrapper |
+| **Timing dependencies** | Are async operations properly sequenced? | Assume service is ready | Document wait/retry strategy |
+
 If any check fails, fix it before proceeding.
 
 * Run `harbor tasks check`

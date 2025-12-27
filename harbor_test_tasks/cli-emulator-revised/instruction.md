@@ -48,17 +48,31 @@ Fix the CLI configuration scripts so that all three cloud tools (AWS, gcloud, Az
   - `account_name = devstoreaccount1`
   - `blob_endpoint = http://127.0.0.1:10000/devstoreaccount1`
 
+## Execution Order (CRITICAL)
+
+The emulators must be running and ready BEFORE any CLI commands are executed against them:
+
+1. **Start emulators first**: Run `/app/bin/start_emulators.sh` 
+2. **Wait for readiness**: Use `/app/bin/wait_for_ports.py` to ensure ports are listening:
+   ```bash
+   python /app/bin/wait_for_ports.py 4566 8085 10000
+   ```
+3. **Then configure**: Only run configuration scripts after emulators are ready
+4. **Then verify**: Run verification after configuration is complete
+
+If you see `ConnectionError` or `HTTPConnectionPool` errors, the emulator wasn't ready when the command ran.
+
 ## Constraints (ENFORCED BY TESTS)
 
 ⚠️ **These constraints are verified by automated tests - violations will cause failures:**
 
 1. **Fix, don't replace**: Modify the existing scripts in `/app/bin/` to fix their bugs. Do NOT delete and rewrite them from scratch. Each script contains a `MARKER:` comment that must be preserved.
 
-2. **Use helper utilities**: The provided utilities (`write_ini_value.py`, `ini_get.py`) must be used for INI file manipulation. Tests verify at least one script uses `write_ini_value.py`.
+2. **Use helper utilities**: The provided utilities (`write_ini_value.py`, `ini_get.py`) must be used for INI file manipulation. Tests verify the helper is actually executed (not just referenced).
 
 3. **Offline only**: No external network calls allowed. The emulators run on localhost - all operations must work without internet access.
 
-4. **Orchestration required**: The `configure_all.sh` script must call all three individual configure scripts.
+4. **Orchestration required**: The `configure_all.sh` script must actually call (execute) all three individual configure scripts. Tests verify execution via tracing.
 
 ## Files
 
