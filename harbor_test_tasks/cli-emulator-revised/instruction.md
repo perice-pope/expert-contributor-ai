@@ -38,7 +38,7 @@ Fix the CLI configuration scripts so that all three cloud tools (AWS, gcloud, Az
   - `[core]` section with `project = tbench-local`
   - `[api_endpoint_overrides]` section with `pubsub = http://127.0.0.1:8085/`
   - `[auth]` section with `disable_credentials = true` (CRITICAL: required for offline emulator operation)
-- **Important**: Do NOT activate this configuration as default - use scoped commands with `--configuration pubsub-emulator`
+- **⚠️ DO NOT ACTIVATE**: Never run `gcloud config configurations activate pubsub-emulator`. The file `/root/.config/gcloud/active_config` must remain set to `default`. Use `--configuration pubsub-emulator` flag on gcloud commands instead.
 
 ### Azure (`azurite` profile)
 - **Config file**: `/root/.azure/config`

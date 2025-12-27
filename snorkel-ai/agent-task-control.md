@@ -441,6 +441,52 @@ Every autonomous fix MUST be logged. This creates an audit trail without stoppin
 
 ---
 
+## LOCAL TESTING STRATEGY (QUICK REFERENCE)
+
+Before submitting to CI, run these tests locally in order:
+
+| Phase | Command | What It Validates | Pass Criteria |
+|-------|---------|-------------------|---------------|
+| 1. Build | `harbor tasks start-env <task>` | Docker builds correctly | No build errors |
+| 2. Oracle | `harbor run -a oracle -p <task>` | Solution passes all tests | reward = 1 |
+| 3. NOP | `harbor run -a nop -p <task>` | Task isn't trivially solvable | reward = 0 |
+| 4. Quality | `harbor tasks check -m openai/gpt-4o <task>` | CI quality checks pass | All checks pass |
+| 5. Agents | `harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -k 3 -n 1 <task>` | Difficulty assessment | 40-70% for MEDIUM |
+
+### Quick Commands
+
+```bash
+# Phase 1: Build
+harbor tasks start-env harbor_tasks/<task-name>
+
+# Phase 2: Oracle (solution works)
+harbor run -a oracle -p harbor_tasks/<task-name>
+
+# Phase 3: NOP (correctly fails)
+harbor run -a nop -p harbor_tasks/<task-name>
+
+# Phase 4: Quality checks (CRITICAL - run before agents!)
+harbor tasks check -m openai/gpt-4o harbor_tasks/<task-name>
+
+# Phase 5: Agent difficulty (Claude)
+harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -p harbor_tasks/<task-name> -k 3 -n 1
+
+# Phase 5: Agent difficulty (Codex)
+harbor run -a codex -m openai/gpt-5 -p harbor_tasks/<task-name> -k 3 -n 1
+```
+
+### Difficulty Targets
+
+| Classification | Combined Agent Success Rate |
+|----------------|----------------------------|
+| TRIVIAL | > 90% (too easy, revise) |
+| EASY | 70-90% |
+| MEDIUM | 40-70% ← Target |
+| HARD | 20-40% |
+| VERY HARD | < 20% |
+
+---
+
 ## STEP-BY-STEP EXECUTION
 
 ---
@@ -535,10 +581,31 @@ harbor run -a terminus-2 -m anthropic/claude-3-5-sonnet-20240620 -p <task-name>
 
 ---
 
-### Step 9: Run CI / LLMaJ Checks
+### Step 9: Run CI / LLMaJ Checks (LOCAL QUALITY CHECKS)
 
-* Run CI-equivalent commands
-* All must PASS
+Run the **exact same quality checks** that CI will run:
+
+```bash
+# Run quality checks locally (uses LLM to evaluate)
+harbor tasks check -m openai/gpt-4o harbor_tasks/<task-name>
+
+# Or with output file for detailed results
+harbor tasks check -m openai/gpt-4o -o quality-results.json harbor_tasks/<task-name>
+```
+
+**Key checks that must pass:**
+- `behavior_in_instruction` - Tests only assert behaviors stated in instruction.md
+- `behavior_in_tests` - All instruction requirements have corresponding tests
+- `informative_test_docstrings` - Every test has a docstring
+- `anti_cheating_measures` - Agent can't trivially bypass
+- `structured_data_schema` - Output formats documented
+- `pinned_dependencies` - All versions pinned
+- `file_reference_mentioned` - Test file paths in instructions
+
+If any check fails, fix it before proceeding.
+
+* Run `harbor tasks check`
+* All checks must PASS
 * Mark Step 9 complete
 
 ---

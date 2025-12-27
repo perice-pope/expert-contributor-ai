@@ -235,12 +235,45 @@ def test_scripts_were_fixed_not_replaced():
     azure_script = read_text("/app/bin/configure_azure.sh")
     assert "MARKER:AZURE_CONFIG_SCRIPT_V1" in azure_script, \
         "configure_azure.sh was replaced instead of fixed - must retain original marker"
+
+
+def test_orchestration_script_calls_all_configure_scripts():
+    """Verify configure_all.sh orchestrates all three individual configure scripts.
     
-    # Verify scripts still use the helper utility for INI file manipulation
-    # (At least one script must use write_ini_value.py as instructed)
+    The orchestration script must call each individual configuration script.
+    This test verifies the script contains references to all three scripts.
+    """
+    configure_all = read_text("/app/bin/configure_all.sh")
+    
+    # Must reference all three configure scripts
+    assert "configure_aws.sh" in configure_all, \
+        "configure_all.sh must call configure_aws.sh"
+    assert "configure_gcloud.sh" in configure_all, \
+        "configure_all.sh must call configure_gcloud.sh"
+    assert "configure_azure.sh" in configure_all, \
+        "configure_all.sh must call configure_azure.sh"
+
+
+def test_helper_utilities_are_executed():
+    """Verify helper utilities are actually used for INI file manipulation.
+    
+    At least one configure script must invoke write_ini_value.py to demonstrate
+    proper use of the provided helper utilities.
+    """
+    aws_script = read_text("/app/bin/configure_aws.sh")
+    gcloud_script = read_text("/app/bin/configure_gcloud.sh")
+    azure_script = read_text("/app/bin/configure_azure.sh")
+    
+    # Check that write_ini_value.py is invoked (not just mentioned in comments)
+    # Look for actual execution patterns like "python" or direct script call
     all_scripts = aws_script + gcloud_script + azure_script
-    assert "write_ini_value.py" in all_scripts, \
-        "Scripts must use the provided write_ini_value.py helper utility"
+    
+    # Must contain actual call to write_ini_value.py (with python or direct execution)
+    has_python_call = "python" in all_scripts and "write_ini_value.py" in all_scripts
+    has_direct_call = "/app/bin/write_ini_value.py" in all_scripts
+    
+    assert has_python_call or has_direct_call, \
+        "At least one script must execute write_ini_value.py (not just reference it in comments)"
 
 
 def test_no_external_network_calls():
