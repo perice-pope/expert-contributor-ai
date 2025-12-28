@@ -13,6 +13,25 @@ You’ve joined a team that runs integration tests **fully offline** using local
    - Azure: `/root/.azure/config`
 5. **Profile isolation**: Switching between profiles/configurations must not clobber the default configuration (tests will assert the defaults remain untouched).
 
+## Configuration Details
+
+### gcloud (`pubsub-emulator` configuration)
+- **Config file**: `/root/.config/gcloud/configurations/config_pubsub-emulator`
+- **Project name**: `tbench-local`
+- **Required settings**:
+  - Project must be set to `tbench-local`
+  - Pub/Sub API endpoint must be overridden to `http://127.0.0.1:8085/`
+- **⚠️ CRITICAL - DO NOT ACTIVATE**: 
+  - **Never run** `gcloud config configurations activate pubsub-emulator`
+  - The file `/root/.config/gcloud/active_config` must remain set to `default`
+  - **How to configure without activating**: 
+    1. Create the configuration: `gcloud config configurations create pubsub-emulator` (this does NOT activate by default)
+    2. Set configuration values using the `--configuration` flag: `gcloud --configuration pubsub-emulator config set <property> <value>`
+    3. **Do NOT use** `gcloud config configurations activate` - this will change the active configuration
+    4. **Do NOT use** `gcloud config set` without `--configuration` flag - this modifies the active configuration
+    5. Verify `/root/.config/gcloud/active_config` remains `default` after all configuration steps
+  - **How to use**: Always use `--configuration pubsub-emulator` flag on all gcloud commands (e.g., `gcloud --configuration pubsub-emulator pubsub topics list`)
+
 ## Constraints
 
 - **No external network calls**. Everything must work offline inside the container.
