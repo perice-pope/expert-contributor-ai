@@ -106,6 +106,26 @@ if 'auth/disable_credentials' not in txt:
 path.write_text(txt, encoding="utf-8")
 PY
 
+echo "[oracle] Fixing verify_all.sh to include emulator readiness wait..."
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path("/app/bin/verify_all.sh")
+txt = path.read_text(encoding="utf-8")
+
+# Add wait_for_ports.py call after start_emulators.sh
+if 'wait_for_ports.py' not in txt:
+    wait_code = '''python3 /app/bin/wait_for_ports.py --tcp 127.0.0.1:4566 --tcp 127.0.0.1:8085 --tcp 127.0.0.1:10000 --timeout-sec 60 || echo "[verify] warning: some emulators may not be ready, continuing anyway..."
+
+'''
+    txt = txt.replace(
+        '/app/bin/start_emulators.sh >/dev/null\n',
+        '/app/bin/start_emulators.sh >/dev/null\n' + wait_code
+    )
+
+path.write_text(txt, encoding="utf-8")
+PY
+
 echo "[oracle] Running configuration and verification..."
 bash /app/bin/configure_all.sh
 bash /app/bin/verify_all.sh

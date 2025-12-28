@@ -39,7 +39,11 @@ Fix the CLI configuration scripts so that all three cloud tools (AWS, gcloud, Az
   - Project must be set to `tbench-local`
   - Pub/Sub API endpoint must be overridden to `http://127.0.0.1:8085/`
   - Authentication must be disabled for offline emulator operation (set `auth/disable_credentials = true`)
-- **⚠️ DO NOT ACTIVATE**: Never run `gcloud config configurations activate pubsub-emulator`. The file `/root/.config/gcloud/active_config` must remain set to `default`. Use `--configuration pubsub-emulator` flag on gcloud commands instead.
+- **⚠️ CRITICAL - DO NOT ACTIVATE**: 
+  - **Never run** `gcloud config configurations activate pubsub-emulator`
+  - The file `/root/.config/gcloud/active_config` must remain set to `default`
+  - **How to create without activating**: Use `gcloud config configurations create` to create the configuration, then use `gcloud --configuration pubsub-emulator config set` commands to configure it. The `create` command does NOT activate by default, but verify `/root/.config/gcloud/active_config` remains `default` after all configuration steps.
+  - **How to use**: Always use `--configuration pubsub-emulator` flag on all gcloud commands (e.g., `gcloud --configuration pubsub-emulator pubsub topics list`)
 
 ### Azure (`azurite` profile)
 - **Config file**: `/root/.azure/config`
@@ -54,7 +58,7 @@ The emulators must be running and ready BEFORE any CLI commands are executed aga
 1. **Start emulators first**: Run `/app/bin/start_emulators.sh` 
 2. **Wait for readiness**: Use `/app/bin/wait_for_ports.py` to ensure ports are listening:
    ```bash
-   python /app/bin/wait_for_ports.py 4566 8085 10000
+   python3 /app/bin/wait_for_ports.py --tcp 127.0.0.1:4566 --tcp 127.0.0.1:8085 --tcp 127.0.0.1:10000
    ```
 3. **Then configure**: Only run configuration scripts after emulators are ready
 4. **Then verify**: Run verification after configuration is complete

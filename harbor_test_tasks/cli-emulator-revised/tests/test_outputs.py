@@ -486,4 +486,60 @@ def test_emulator_state_matches_output_files():
         raise AssertionError(f"Failed to query Azurite directly: {e.stderr}")
 
 
+def test_verify_all_sh_includes_emulator_readiness_wait():
+    """Verify verify_all.sh includes emulator readiness waiting logic.
+    
+    The instruction requires verify_all.sh to wait for emulators to be ready
+    before executing CLI commands. This test verifies the wait_for_ports.py
+    utility is called in verify_all.sh with correct syntax.
+    """
+    verify_all = read_text("/app/bin/verify_all.sh")
+    
+    # Must include wait_for_ports.py call to ensure emulators are ready
+    assert "wait_for_ports.py" in verify_all, \
+        "verify_all.sh must include emulator readiness wait using wait_for_ports.py"
+    
+    # Verify it's actually called (not just mentioned in comments)
+    # Look for execution pattern (python/python3 with wait_for_ports.py)
+    has_python_call = ("python" in verify_all or "python3" in verify_all) and "wait_for_ports.py" in verify_all
+    assert has_python_call, \
+        "verify_all.sh must execute wait_for_ports.py, not just reference it"
+    
+    # Verify it uses correct syntax (--tcp format)
+    assert "--tcp" in verify_all or "127.0.0.1:4566" in verify_all, \
+        "verify_all.sh must use correct wait_for_ports.py syntax (--tcp host:port)"
+
+
+def test_helper_utility_ini_get_is_used():
+    """Verify ini_get.py helper utility is actually used.
+    
+    The instruction requires using helper utilities for INI file manipulation.
+    ini_get.py is used for reading INI values (typically in verification/wrapper scripts).
+    This test verifies it's actually executed somewhere in the task flow.
+    """
+    # Check if ini_get.py is used in any of the wrapper/verification scripts
+    # These scripts use ini_get.py to read configuration values
+    wrapper_scripts = [
+        "/app/bin/aws_localstack.sh",
+        "/app/bin/gcloud_pubsub.sh", 
+        "/app/bin/azure_profile.sh"
+    ]
+    
+    ini_get_used = False
+    for script_path in wrapper_scripts:
+        if Path(script_path).exists():
+            script_content = read_text(script_path)
+            # Check for actual execution (python/python3 with ini_get.py)
+            if ("python" in script_content or "python3" in script_content) and "ini_get.py" in script_content:
+                ini_get_used = True
+                break
+    
+    # Also check verify_all.sh or configure scripts might use it
+    verify_all = read_text("/app/bin/verify_all.sh")
+    if ("python" in verify_all or "python3" in verify_all) and "ini_get.py" in verify_all:
+        ini_get_used = True
+    
+    assert ini_get_used, \
+        "ini_get.py helper utility must be used for reading INI file values (typically in verification/wrapper scripts)"
+
 

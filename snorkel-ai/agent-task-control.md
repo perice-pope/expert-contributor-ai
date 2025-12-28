@@ -456,7 +456,7 @@ Before submitting to CI, run these tests locally in order:
 | 2. Oracle | `harbor run -a oracle -p <task>` | Solution passes all tests | reward = 1 |
 | 3. NOP | `harbor run -a nop -p <task>` | Task isn't trivially solvable | reward = 0 |
 | 4. Quality | `harbor tasks check -m openai/gpt-4o <task>` | CI quality checks pass | All checks pass |
-| 4.5. Static | `ruff check <task>/tests/` | No unused imports, syntax errors | No errors |
+| 4.5. Static | `ruff check <task>/tests/` (MUST install ruff first!) | No unused imports, syntax errors | No errors |
 | 5. Agents | `harbor run -a claude-code -m anthropic/claude-sonnet-4-5-20250929 -k 3 -n 1 <task>` | Difficulty assessment | 40-70% for MEDIUM |
 
 ### Quick Commands
@@ -474,7 +474,8 @@ harbor run -a nop -p harbor_tasks/<task-name>
 # Phase 4: Quality checks (CRITICAL - run before agents!)
 harbor tasks check -m openai/gpt-4o harbor_tasks/<task-name>
 
-# Phase 4.5: Static code checks (catches unused imports, syntax errors)
+# Phase 4.5: Static code checks (MANDATORY - install ruff first if needed!)
+# Install ruff: pipx install ruff  (or: pip install ruff in venv)
 ruff check harbor_tasks/<task-name>/tests/
 # Or: python run_static_checks.py --task-dir harbor_tasks/<task-name>
 
@@ -632,16 +633,37 @@ If any check fails, fix it before proceeding.
 
 * Run `harbor tasks check`
 * All checks must PASS
+* **Note**: CI also runs static code checks (ruff) - see Step 9.5
 * Mark Step 9 complete
 
 ---
 
-### Step 9.5: Run Static Code Checks (CRITICAL - Catches Syntax/Lint Errors)
+### Step 9.5: Run Static Code Checks (MANDATORY - Catches Syntax/Lint Errors)
 
-Run **static code analysis** to catch issues CI will find:
+⚠️ **DO NOT SKIP THIS STEP** - CI will run static checks and fail if there are errors. You must verify locally.
+
+**Install linting tools if needed:**
+
+CI uses `ruff` for Python linting. Ensure it's available:
 
 ```bash
-# Option 1: Use CI's static check script (if available)
+# Install ruff (choose method based on your environment):
+# Option A: Using pipx (recommended for system-wide install)
+pipx install ruff
+
+# Option B: Using pip in virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+pip install ruff
+
+# Option C: Using container/environment that has ruff pre-installed
+# (Check if your development container includes linting tools)
+```
+
+**Run static code analysis:**
+
+```bash
+# Option 1: Use CI's static check script (if available in helper directory)
 python run_static_checks.py --task-dir harbor_tasks/<task-name>
 
 # Option 2: Run ruff directly (catches unused imports, syntax errors)
@@ -663,8 +685,14 @@ ruff check --fix harbor_tasks/<task-name>/tests/
 - `F841` → Remove unused variable
 - Syntax errors → Fix code
 
+**If ruff is not available:**
+- Install it using one of the methods above
+- Or use an alternative linter (pylint, flake8) that CI might accept
+- **DO NOT** skip this step - CI will fail if static checks don't pass
+
 ⚠️ **CI runs `run_static_checks.py` which includes ruff - if this fails locally, CI will fail too!**
 
+* Install linting tools if needed
 * Run static checks
 * Fix all errors (or verify they're acceptable)
 * Mark Step 9.5 complete
