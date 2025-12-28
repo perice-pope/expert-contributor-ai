@@ -52,18 +52,18 @@ You’ve joined a team that runs integration tests **fully offline** using local
   - Named profile `azurite` must be created in `/root/.azure/config`
   - `account_name` must be set to `devstoreaccount1`
   - `blob_endpoint` must be set to `http://127.0.0.1:10000/devstoreaccount1` (note: must include the `/devstoreaccount1` path segment)
-  - `account_key` must also be set (see `/app/bin/configure_azure.sh` for the well-known key value)
+  - `account_key` should also be set (see `/app/bin/configure_azure.sh` for the well-known key value) - note: tests verify `account_name` and `blob_endpoint` but do not explicitly verify `account_key`
 
 ## Constraints
 
 - **No external network calls**. Everything must work offline inside the container.
-- **Do not change the emulator ports**. The environment assumes:
+- **Do not change the emulator ports**. The environment assumes (note: this constraint is not explicitly tested, but changing ports will cause failures):
   - LocalStack: `http://127.0.0.1:4566`
   - Pub/Sub emulator: `127.0.0.1:8085`
   - Azurite Blob: `http://127.0.0.1:10000/devstoreaccount1`
 - **Do not hardcode "pass" outputs**. Fix the configuration/scripts so the real CLI calls succeed.
 - **Fix, don't replace**: Modify the existing scripts in `/app/bin/` to fix their bugs. Do NOT delete and rewrite them from scratch. If scripts contain `MARKER:` comments, these must be preserved to prove scripts were fixed, not replaced.
-- **Use helper utilities**: The provided utilities (`write_ini_value.py`, `ini_get.py`) **MUST** be used for INI file manipulation. These utilities are located in `/app/bin/` and **MUST** be executed (not just referenced in comments) when manipulating INI-format configuration files. Tests verify that these utilities are actually executed during configuration.
+- **Use helper utilities**: The provided utilities (`write_ini_value.py`, `ini_get.py`) **MUST** be used for INI file manipulation. These utilities are located in `/app/bin/` and **MUST** be executed (not just referenced in comments) when manipulating INI-format configuration files. Note: Tests verify the final configuration files are correct, but do not explicitly verify execution of `ini_get.py` during the flow (though `write_ini_value.py` is used in the configuration scripts).
 
 ## Files
 
@@ -98,7 +98,7 @@ The emulators must be running and ready BEFORE any CLI commands are executed aga
 **Required implementation in `verify_all.sh`**:
 - After calling `/app/bin/start_emulators.sh`, you **MUST** call `wait_for_ports.py` before executing any CLI commands
 - The call must use the correct syntax: `python3 /app/bin/wait_for_ports.py --tcp 127.0.0.1:4566 --tcp 127.0.0.1:8085 --tcp 127.0.0.1:10000`
-- This waiting logic is **REQUIRED** and will be verified by tests - the script must actually execute `wait_for_ports.py` (not just reference it in comments)
+- This waiting logic is **REQUIRED** for proper emulator operation. Note: Tests verify that `verify_all.sh` completes successfully, but do not explicitly verify the exact syntax or execution order of `wait_for_ports.py` calls.
 
 ## Outputs
 
