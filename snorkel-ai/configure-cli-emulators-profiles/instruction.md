@@ -37,7 +37,7 @@ You’ve joined a team that runs integration tests **fully offline** using local
   - **Never run** `gcloud config configurations activate pubsub-emulator`
   - The file `/root/.config/gcloud/active_config` must remain set to `default`
   - **How to configure without activating**: 
-    1. Create the configuration: `gcloud config configurations create pubsub-emulator` (this does NOT activate by default)
+    1. Create the configuration: `gcloud config configurations create pubsub-emulator --no-activate` (the `--no-activate` flag prevents automatic activation)
     2. Set configuration values using the `--configuration` flag: `gcloud --configuration pubsub-emulator config set <property> <value>`
     3. **Do NOT use** `gcloud config configurations activate` - this will change the active configuration
     4. **Do NOT use** `gcloud config set` without `--configuration` flag - this modifies the active configuration
