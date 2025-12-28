@@ -52,7 +52,7 @@ You’ve joined a team that runs integration tests **fully offline** using local
   - Named profile `azurite` must be created in `/root/.azure/config`
   - `account_name` must be set to `devstoreaccount1`
   - `blob_endpoint` must be set to `http://127.0.0.1:10000/devstoreaccount1` (note: must include the `/devstoreaccount1` path segment)
-  - `account_key` should also be set (see `/app/bin/configure_azure.sh` for the well-known key value)
+  - `account_key` must also be set (see `/app/bin/configure_azure.sh` for the well-known key value)
 
 ## Constraints
 
@@ -63,7 +63,7 @@ You’ve joined a team that runs integration tests **fully offline** using local
   - Azurite Blob: `http://127.0.0.1:10000/devstoreaccount1`
 - **Do not hardcode "pass" outputs**. Fix the configuration/scripts so the real CLI calls succeed.
 - **Fix, don't replace**: Modify the existing scripts in `/app/bin/` to fix their bugs. Do NOT delete and rewrite them from scratch. If scripts contain `MARKER:` comments, these must be preserved to prove scripts were fixed, not replaced.
-- **Use helper utilities**: The provided utilities (`write_ini_value.py`, `ini_get.py`) must be used for INI file manipulation. These utilities are located in `/app/bin/` and should be executed (not just referenced) when manipulating INI-format configuration files.
+- **Use helper utilities**: The provided utilities (`write_ini_value.py`, `ini_get.py`) **MUST** be used for INI file manipulation. These utilities are located in `/app/bin/` and **MUST** be executed (not just referenced in comments) when manipulating INI-format configuration files. Tests verify that these utilities are actually executed during configuration.
 
 ## Files
 
@@ -93,7 +93,12 @@ The emulators must be running and ready BEFORE any CLI commands are executed aga
 3. **Then configure**: Only run configuration scripts after emulators are ready
 4. **Then verify**: Run verification after configuration is complete
 
-⚠️ **IMPORTANT**: The `verify_all.sh` script must ensure emulators are ready before executing CLI commands. Even though `start_emulators.sh` starts the emulators, they may not be immediately ready to accept connections. You must add appropriate waiting logic using the provided `wait_for_ports.py` utility to prevent connection errors. The `verify_all.sh` script should call `wait_for_ports.py` after starting emulators and before executing any CLI commands against them.
+⚠️ **CRITICAL REQUIREMENT**: The `verify_all.sh` script **MUST** call `wait_for_ports.py` to ensure emulators are ready before executing CLI commands. Even though `start_emulators.sh` starts the emulators, they may not be immediately ready to accept connections. 
+
+**Required implementation in `verify_all.sh`**:
+- After calling `/app/bin/start_emulators.sh`, you **MUST** call `wait_for_ports.py` before executing any CLI commands
+- The call must use the correct syntax: `python3 /app/bin/wait_for_ports.py --tcp 127.0.0.1:4566 --tcp 127.0.0.1:8085 --tcp 127.0.0.1:10000`
+- This waiting logic is **REQUIRED** and will be verified by tests - the script must actually execute `wait_for_ports.py` (not just reference it in comments)
 
 ## Outputs
 
