@@ -5,7 +5,6 @@ mkdir -p /output
 
 echo "[verify] ensuring emulators are running..."
 /app/bin/start_emulators.sh >/dev/null
-python3 /app/bin/wait_for_ports.py --tcp 127.0.0.1:4566 --tcp 127.0.0.1:8085 --tcp 127.0.0.1:10000 --timeout-sec 60 || echo "[verify] warning: some emulators may not be ready, continuing anyway..."
 
 bucket="tbench-local-bucket"
 topic="tbench-topic"
