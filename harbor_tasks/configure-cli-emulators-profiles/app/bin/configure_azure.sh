@@ -10,8 +10,8 @@ AZ_PROFILE_NAME="azurite"
 AZURITE_ACCOUNT_NAME="devstoreaccount1"
 AZURITE_ACCOUNT_KEY="Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
 
-# BUG (intentional): endpoint is missing the /devstoreaccount1 suffix.
-AZURITE_BLOB_ENDPOINT="http://127.0.0.1:10000"
+# CRITICAL: Endpoint must include /devstoreaccount1 path segment
+AZURITE_BLOB_ENDPOINT="http://127.0.0.1:10000/devstoreaccount1"
 
 echo "[azure] writing profile '${AZ_PROFILE_NAME}' into /root/.azure/config..."
 
