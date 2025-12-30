@@ -55,8 +55,8 @@ The `pubsub-emulator` configuration must be created and configured with the foll
 
 1. **Configuration creation**:
    - A named configuration called `pubsub-emulator` must exist
-   - The configuration must NOT be activated (must not change `/root/.config/gcloud/active_config`)
-   - After configuration, `/root/.config/gcloud/active_config` must still contain `default`
+   - If the gcloud CLI activates the configuration automatically, the solution must restore the active configuration to default afterward.
+   - After all configuration steps, `/root/.config/gcloud/active_config` must contain `default`
 
 2. **Required settings** (all three must be set):
    - `project = tbench-local`
@@ -64,8 +64,8 @@ The `pubsub-emulator` configuration must be created and configured with the foll
    - `auth/disable_credentials = true`
    - **CRITICAL**: The endpoint URL must have a trailing slash: `http://127.0.0.1:8085/`
 
-3. **CRITICAL - Never activate the configuration**:
-   - **DO NOT** activate the configuration (must not run `gcloud config configurations activate pubsub-emulator`)
+3. **CRITICAL - Active configuration must remain default**:
+   - The active configuration must remain `default` after all configuration steps
    - Tests verify that `/root/.config/gcloud/active_config` remains `default`
 
 4. **How to use the configuration**:
