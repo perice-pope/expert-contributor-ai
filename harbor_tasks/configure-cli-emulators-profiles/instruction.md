@@ -114,7 +114,7 @@ You've joined a team that runs integration tests **fully offline** using local e
    - Correct: `http://127.0.0.1:10000/devstoreaccount1`
    - Incorrect: `http://127.0.0.1:10000` (missing path segment)
 
-4. **Note**: Tests verify `account_name` and `blob_endpoint` are correct. The `account_key` value is shown in `/app/bin/configure_azure.sh` if you need to reference it.
+4. **Note**: Tests verify `account_name`, `account_key`, and `blob_endpoint` are correct. All three settings are required for proper Azure CLI operation with Azurite.
 
 ## Execution Order
 
@@ -168,7 +168,7 @@ If you see errors like "Timed out waiting for: 127.0.0.1:8085" or "ConnectionErr
 - AWS config files: `/root/.aws/config`, `/root/.aws/credentials`
 - gcloud config directory: `/root/.config/gcloud/`
 - Azure config file: `/root/.azure/config`
-- Helper scripts: `/app/bin/start_emulators.sh`, `/app/bin/configure_all.sh`, `/app/bin/verify_all.sh`, `/app/bin/azure_profile.sh`
+- Helper scripts: `/app/bin/start_emulators.sh`, `/app/bin/configure_all.sh`, `/app/bin/verify_all.sh`, `/app/bin/azure_profile.sh`, `/app/bin/aws_localstack.sh`, `/app/bin/gcloud_pubsub.sh`
 - Helper utilities: `/app/bin/write_ini_value.py`, `/app/bin/ini_get.py`, `/app/bin/wait_for_ports.py`
 
 ## Outputs
