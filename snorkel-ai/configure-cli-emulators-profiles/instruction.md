@@ -56,7 +56,7 @@ The `pubsub-emulator` configuration must be created and configured with the foll
 1. **Configuration creation**:
    - A named configuration called `pubsub-emulator` must exist
    - If the gcloud CLI activates the configuration automatically, the solution must restore the active configuration to default afterward.
-   - After creating the configuration, the active configuration must be restored to `default` by switching back to the default gcloud configuration (e.g., `gcloud config configurations activate default`), so that `/root/.config/gcloud/active_config` contains `default` at the end.
+   - After all gcloud configuration settings are set, the active configuration must be restored to `default` by switching back to the default gcloud configuration (e.g., `gcloud config configurations activate default`), so that `/root/.config/gcloud/active_config` contains `default` at the end.
    - After all configuration steps, `/root/.config/gcloud/active_config` must contain `default`
 
 2. **Required settings** (all three must be set):
