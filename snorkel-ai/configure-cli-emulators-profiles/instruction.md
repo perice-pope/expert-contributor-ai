@@ -57,6 +57,7 @@ The `pubsub-emulator` configuration must be created and configured with the foll
    - A named configuration called `pubsub-emulator` must exist
    - If the gcloud CLI activates the configuration automatically, the solution must restore the active configuration to default afterward.
    - This may be achieved by explicitly switching back to the default configuration or by editing the active_config file using the provided helper utilities, provided the final state satisfies all invariants.
+   - After creating the configuration, the active configuration must be restored to `default`, for example by running `gcloud config configurations activate default`, so that `/root/.config/gcloud/active_config` contains `default` at the end.
    - After all configuration steps, `/root/.config/gcloud/active_config` must contain `default`
 
 2. **Required settings** (all three must be set):
@@ -152,6 +153,8 @@ The verification flow must complete and write these files:
 - `/output/aws_s3_list.txt` (output of listing S3 buckets via LocalStack profile)
 - `/output/gcloud_pubsub_list.txt` (output of listing topics + subscriptions via Pub/Sub emulator config)
 - `/output/azure_blob_list.txt` (output of listing blob containers via Azurite profile)
+
+Tests expect the created resources to use the following names: `tbench-local-bucket`, `tbench-topic`, `tbench-sub`, and `tbench-container`.
 
 ## Design Freedom
 
