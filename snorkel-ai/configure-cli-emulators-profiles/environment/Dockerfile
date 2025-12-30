@@ -43,8 +43,7 @@ RUN mkdir -p /etc/apt/keyrings \
 RUN pip install --no-cache-dir \
       awscli==1.34.33 \
       "moto[server]==5.1.0" \
-      azure-cli==2.64.0 \
-      pytest==8.4.1
+      azure-cli==2.64.0
 
 # Pinned Azurite.
 RUN npm install -g azurite@3.33.0
