@@ -19,7 +19,6 @@ from pylint.lint import PyLinter
 
 class AsyncIOChecker(BaseChecker):
     """Checker for blocking I/O operations in async functions."""
-    
     name = "async-io-checker"
     priority = -1
     msgs = {
@@ -103,13 +102,35 @@ class AsyncIOChecker(BaseChecker):
         for node in nodes:
             if isinstance(node, astroid.Call):
                 self._check_blocking_call(node, func_node)
-            elif isinstance(node, (astroid.If, astroid.For, astroid.While, astroid.With)):
+            elif isinstance(node, astroid.Expr):
+                # Expr nodes wrap Call nodes (e.g., time.sleep(1) is Expr(Call(...)))
+                if isinstance(node.value, astroid.Call):
+                    self._check_blocking_call(node.value, func_node)
+            elif isinstance(node, astroid.Assign):
+                # Assign nodes can have Call nodes as values (e.g., response = requests.get(...))
+                if isinstance(node.value, astroid.Call):
+                    self._check_blocking_call(node.value, func_node)
+            elif isinstance(node, astroid.With):
+                # Check With statements - open() calls are in context_expr (items are tuples: (context_expr, optional_vars))
+                if hasattr(node, "items"):
+                    for item in node.items:
+                        # item is a tuple: (context_expr, optional_vars)
+                        if isinstance(item, tuple) and len(item) > 0:
+                            context_expr = item[0]
+                            if isinstance(context_expr, astroid.Call):
+                                self._check_blocking_call(context_expr, func_node)
                 # Recursively check nested blocks
                 if hasattr(node, "body"):
                     self._check_node(node.body, func_node)
                 if hasattr(node, "orelse"):
                     self._check_node(node.orelse, func_node)
-            elif isinstance(node, astroid.TryExcept):
+            elif isinstance(node, (astroid.If, astroid.For, astroid.While)):
+                # Recursively check nested blocks
+                if hasattr(node, "body"):
+                    self._check_node(node.body, func_node)
+                if hasattr(node, "orelse"):
+                    self._check_node(node.orelse, func_node)
+            elif isinstance(node, astroid.Try):
                 # Check try, except, and else blocks
                 if hasattr(node, "body"):
                     self._check_node(node.body, func_node)
@@ -161,6 +182,11 @@ class AsyncIOChecker(BaseChecker):
         if isinstance(current, astroid.Name):
             parts.append(current.name)
         return ".".join(reversed(parts))
+
+
+def register(linter):
+    """Register the checker with pylint."""
+    linter.register_checker(AsyncIOChecker(linter))
 PYTHON_EOF
 
 echo "[oracle] Step 2: Fixing pyproject.toml configuration..."
@@ -199,19 +225,35 @@ cat > tests/test_async_io_checker.py << 'PYTEST_EOF'
 # CANARY_STRING_PLACEHOLDER
 """Unit tests for async_io_checker plugin."""
 import pytest
-from pylint.lint import PyLinter
-from pylint.checkers import initialize
+import subprocess
+import os
 import sys
 from pathlib import Path
 
 # Add parent directory to path to import the plugin
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from async_io_checker import AsyncIOChecker
+
+def run_pylint_with_plugin(test_file):
+    """Run pylint with the async_io_checker plugin and return output."""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = "/app:" + env.get("PYTHONPATH", "")
+    result = subprocess.run(
+        ["python3", "-m", "pylint", "--load-plugins=async_io_checker", str(test_file)],
+        cwd="/app",
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30
+    )
+    return result.stdout + result.stderr
 
 
 def test_plugin_loads():
     """Test that the plugin can be loaded and initialized."""
+    from pylint.lint import PyLinter
+    from async_io_checker import AsyncIOChecker
+    
     linter = PyLinter()
     checker = AsyncIOChecker(linter)
     assert checker is not None
@@ -221,11 +263,6 @@ def test_plugin_loads():
 
 def test_detects_blocking_io_in_async_function():
     """Test that plugin detects blocking I/O in async functions."""
-    linter = PyLinter()
-    checker = AsyncIOChecker(linter)
-    linter.register_checker(checker)
-    
-    # Create a test file with blocking I/O in async function
     test_code = """
 import time
 import requests
@@ -236,17 +273,15 @@ async def fetch_data():
     return response.text
 """
     
-    # Write test file
     test_file = Path("/tmp/test_async_blocking.py")
     test_file.write_text(test_code)
     
     try:
-        linter.check([str(test_file)])
-        messages = linter.reporter.messages
-        
-        # Should have at least 2 messages (time.sleep and requests.get)
-        blocking_messages = [m for m in messages if m.msg_id == "blocking-io-in-async"]
-        assert len(blocking_messages) >= 2, f"Expected at least 2 blocking I/O messages, got {len(blocking_messages)}"
+        output = run_pylint_with_plugin(test_file)
+        # Should detect both time.sleep and requests.get
+        assert "blocking-io-in-async" in output, f"Expected blocking-io-in-async message. Output: {output}"
+        assert "time.sleep" in output, f"Expected time.sleep detection. Output: {output}"
+        assert "requests.get" in output, f"Expected requests.get detection. Output: {output}"
     finally:
         if test_file.exists():
             test_file.unlink()
@@ -254,10 +289,6 @@ async def fetch_data():
 
 def test_no_false_positives_in_sync_function():
     """Test that plugin does not flag blocking I/O in sync functions."""
-    linter = PyLinter()
-    checker = AsyncIOChecker(linter)
-    linter.register_checker(checker)
-    
     test_code = """
 import time
 
@@ -270,12 +301,10 @@ def sync_function():
     test_file.write_text(test_code)
     
     try:
-        linter.check([str(test_file)])
-        messages = linter.reporter.messages
-        
-        # Should have no blocking I/O messages
-        blocking_messages = [m for m in messages if m.msg_id == "blocking-io-in-async"]
-        assert len(blocking_messages) == 0, f"Expected no blocking I/O messages in sync function, got {len(blocking_messages)}"
+        output = run_pylint_with_plugin(test_file)
+        # Should NOT have blocking-io-in-async messages for sync functions
+        blocking_lines = [line for line in output.split('\n') if 'blocking-io-in-async' in line]
+        assert len(blocking_lines) == 0, f"Expected no blocking-io-in-async in sync function. Got: {blocking_lines}"
     finally:
         if test_file.exists():
             test_file.unlink()
@@ -283,10 +312,6 @@ def sync_function():
 
 def test_detects_open_in_async_function():
     """Test that plugin detects open() calls in async functions."""
-    linter = PyLinter()
-    checker = AsyncIOChecker(linter)
-    linter.register_checker(checker)
-    
     test_code = """
 async def read_file():
     with open("data.txt", "r") as f:
@@ -297,11 +322,9 @@ async def read_file():
     test_file.write_text(test_code)
     
     try:
-        linter.check([str(test_file)])
-        messages = linter.reporter.messages
-        
-        blocking_messages = [m for m in messages if m.msg_id == "blocking-io-in-async"]
-        assert len(blocking_messages) >= 1, f"Expected at least 1 blocking I/O message for open(), got {len(blocking_messages)}"
+        output = run_pylint_with_plugin(test_file)
+        assert "blocking-io-in-async" in output, f"Expected blocking-io-in-async for open(). Output: {output}"
+        assert "open" in output, f"Expected open() detection. Output: {output}"
     finally:
         if test_file.exists():
             test_file.unlink()
@@ -309,8 +332,9 @@ async def read_file():
 
 def test_configuration_reading():
     """Test that plugin reads configuration from pyproject.toml."""
-    # This test verifies the configuration loading logic exists
-    # Actual config reading is tested implicitly through other tests
+    from pylint.lint import PyLinter
+    from async_io_checker import AsyncIOChecker
+    
     linter = PyLinter()
     checker = AsyncIOChecker(linter)
     
@@ -321,10 +345,6 @@ def test_configuration_reading():
 
 def test_warning_includes_line_number():
     """Test that warnings include correct line numbers."""
-    linter = PyLinter()
-    checker = AsyncIOChecker(linter)
-    linter.register_checker(checker)
-    
     test_code = """
 async def test():
     import time
@@ -335,14 +355,9 @@ async def test():
     test_file.write_text(test_code)
     
     try:
-        linter.check([str(test_file)])
-        messages = linter.reporter.messages
-        
-        blocking_messages = [m for m in messages if m.msg_id == "blocking-io-in-async"]
-        if blocking_messages:
-            # Check that message has line information
-            msg = blocking_messages[0]
-            assert hasattr(msg, "line") or hasattr(msg, "lineno"), "Message should have line number information"
+        output = run_pylint_with_plugin(test_file)
+        # Check that output contains a line number reference
+        assert ":4:" in output or "line 4" in output.lower(), f"Expected line number in output. Output: {output}"
     finally:
         if test_file.exists():
             test_file.unlink()

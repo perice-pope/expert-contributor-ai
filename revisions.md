@@ -53,6 +53,107 @@
 
 ## Active Revisions
 
+### [REVISION-010] - Fix Pylint Async IO Checker (NOP Passing & Oracle Crashing)
+- **Status**: `[✓]` Completed
+- **Priority**: Critical
+- **File Path**: `snorkel-ai/pylint-async-io-checker-submission.zip`
+- **Date Submitted**: 2025-12-31
+- **Completed**: 2025-12-31 20:43
+
+**Logs/Issues:**
+```
+Issue 1: NOP agent unexpectedly passed tests (starter code was already complete)
+Issue 2: Oracle solution crashes with AttributeError: module 'astroid' has no attribute 'TryExcept'
+
+Stack trace from oracle:
+  File "/app/async_io_checker.py", line 112, in _check_node
+    elif isinstance(node, astroid.TryExcept):
+                          ^^^^^^^^^^^^^^^^^
+AttributeError: module 'astroid' has no attribute 'TryExcept'
+```
+
+**Revision Notes:**
+1. **Break starter code** (`app/async_io_checker.py`) - Introduce bugs so agents have work:
+   - Use deprecated `astroid.TryExcept` (crashes on astroid 3.0+)
+   - Remove proper handling of `Expr` and `Assign` nodes
+   - Remove `register()` function
+   - Remove proper `With` items handling
+2. **Fix oracle solution** (`solution/solve.sh`) - Make it correct:
+   - Use `astroid.Try` instead of `astroid.TryExcept`
+   - Include proper `Expr`, `Assign`, `With` handling
+   - Include `register()` function
+3. **Fix unit tests** in oracle to use subprocess instead of `linter.reporter.messages`
+
+**Expected Output:**
+- [x] Oracle passes (Mean: 1.000)
+- [x] NOP agent fails (Mean: 0.000)
+- [x] Revised zip created
+
+**AI Execution Log:**
+```
+- Modified: app/async_io_checker.py (introduced bugs: TryExcept, removed Expr/Assign/With handling, removed register())
+- Modified: solution/solve.sh (fixed: astroid.Try, added all proper handlers, fixed unit tests to use subprocess)
+- Created: /revisions/pylint-async-io-checker-submission-revised.zip
+- Tests run: oracle Mean: 1.000 ✓, nop Mean: 0.000 ✓
+```
+
+---
+
+### [REVISION-009] - Fix Oracle Solution for Bazel Remote Cache Configuration
+- **Status**: `[✓]` Completed
+- **Priority**: High
+- **File Path**: `snorkel-ai/configure-bazel-remote-cache-submission.zip`
+- **Date Submitted**: 2025-12-31
+- **Completed**: 2025-12-31 20:45
+
+**Logs/Issues:**
+```
+=== ORACLE TEST FAILURE ===
+This task is not tested with any agents as the Oracle solution failed.
+Please fix the Oracle solution and re-run the tests.
+```
+
+**Revision Notes:**
+1. **Fix cache statistics extraction in solution/solve.sh**:
+   - Improved parsing of Bazel build event protocol (BEP) JSON format
+   - Made build summary output parsing the primary method (more reliable)
+   - Enhanced regex patterns to correctly extract cache hit statistics from Bazel output
+   - Better handling of compile action detection
+   - Added fallback mechanisms for robust statistics extraction
+
+2. **Improve error handling**:
+   - Added better error messages when statistics cannot be extracted
+   - Added debug output to help diagnose parsing issues
+   - Improved handling of edge cases in build output format
+
+**Expected Output:**
+- [✓] Oracle solution passes (extracts cache statistics correctly)
+- [✓] Cache hit percentage >95% verified
+- [✓] No compile actions executed in second build
+- [✓] All tests pass
+
+**AI Execution Log:**
+```
+COMPLETED: 2025-12-31 20:45
+
+Modified Files:
+1. solution/solve.sh
+   - Rewrote cache statistics extraction logic
+   - Made build summary parsing the primary method (more reliable than BEP JSON)
+   - Improved regex patterns for extracting "X processes: Y remote cache hit" pattern
+   - Enhanced compile action detection logic
+   - Added better error handling and debug output
+   - Maintained BEP JSON parsing as fallback method
+
+Created: /home/perice09/workspace/revisions/configure-bazel-remote-cache-submission-revised.zip
+
+Key Changes:
+- Primary method now uses build summary output parsing (more reliable)
+- Better handling of Bazel's output format variations
+- Improved compile action detection
+- Enhanced error messages for debugging
+```
+
 ### [REVISION-001] - Fix & Harden CLI Emulator Profile Configuration Task
 - **Status**: `[✓]` Completed & Oracle Tested (Agent Testing Recommended)
 - **Priority**: Critical
