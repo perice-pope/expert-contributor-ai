@@ -9,13 +9,11 @@ if [ ! -f "$TEST_PATH" ]; then
   TEST_PATH="$SCRIPT_DIR/test_outputs.py"
 fi
 
+set +e
 python3 -m pytest -q -rA "$TEST_PATH"
-status=$?
-
-if [ $status -eq 0 ]; then
+if [ $? -eq 0 ]; then
   echo 1 > /logs/verifier/reward.txt
 else
   echo 0 > /logs/verifier/reward.txt
 fi
-
-exit $status
+set -e
