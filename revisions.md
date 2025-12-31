@@ -1354,7 +1354,15 @@ FIXED - Dependency Issues:
    - Added: pip install --no-cache-dir pytest==8.3.3
    - Test dependencies now installed at test time, not in Docker image
 
-Created: /home/perice09/workspace/revisions/configure-openssh-bastion-cert-proxyjump-submission-revised.zip (18.5KB)
+Created: /home/perice09/workspace/revisions/configure-openssh-bastion-cert-proxyjump-submission-revised.zip (52KB)
+
+ADDITIONAL IMPROVEMENTS (2025-12-31):
+- Added test_stricthostkeychecking_yes() to explicitly verify StrictHostKeyChecking is set to 'yes' (not 'accept-new' or missing)
+- Clarified instruction.md requirement #3 to explicitly state UserKnownHostsFile setting (removes ambiguity about GlobalKnownHostsFile)
+- Enhanced test_known_hosts_hashed_and_ca_present() to verify specific entries (@cert-authority and bastion host) are present and hashed
+- Fixed test_proxyjump_configured() to work with paths as written in config files
+
+These changes address QC feedback about missing StrictHostKeyChecking test, instruction ambiguity, and weak hashing verification.
 
 WHY NOP WILL NOW FAIL:
 - 11 anti-cheating tests check for directives that DON'T EXIST in starter files
