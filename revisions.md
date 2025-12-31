@@ -1390,6 +1390,70 @@ NOP TEST RESULTS (2025-12-26 18:35):
 
 ---
 
+### [REVISION-008] - Fix Test Dependencies in Flask Auth Migration
+- **Status**: `[✓]` Completed
+- **Priority**: Medium
+- **File Path**: `harbor_tasks/migrate-flask-auth-sha1-to-argon2id-submission.zip`
+- **Date Submitted**: 2025-12-31
+- **Completed**: 2025-12-31 (immediate)
+
+**Logs/Issues:**
+```
+=== QUALITY CHECK FAILURE ===
+Test Deps In Image │ fail │ The Dockerfile installs uv (a testing tool) in the 
+                   │      │ image during build. Per the criterion, test 
+                   │      │ dependencies/tools should be installed in test.sh 
+                   │      │ instead, not baked into the image.
+```
+
+**Revision Notes:**
+1. **Verify Dockerfile does NOT install test dependencies**
+   - Confirmed: Dockerfile only installs Flask==3.0.0 and argon2-cffi==23.1.0
+   - No uv, pytest, or other test tools in Dockerfile
+   
+2. **Verify test.sh installs test dependencies at runtime**
+   - Confirmed: test.sh installs curl, then uv via curl
+   - Test dependencies (pytest, pytest-json-ctrf, requests) installed via uvx at test time
+   
+3. **Root cause**: QC was run on corrupted/old zip file
+   - Both zip files in harbor_tasks/ and snorkel-ai/ were corrupted
+   - Created fresh zip from current source directory
+
+**Expected Output:**
+- [✓] Dockerfile contains no test dependencies
+- [✓] test.sh installs all test dependencies at runtime
+- [✓] Fresh zip created from verified source
+
+**Related to Lesson**: LESSON-002
+
+**AI Execution Log:**
+```
+COMPLETED: 2025-12-31
+
+Analysis:
+- Original zip files corrupted (missing 800MB+ bytes)
+- Source directory at snorkel-ai/migrate-flask-auth-sha1-to-argon2id/ verified correct
+- Dockerfile: Only Flask==3.0.0, argon2-cffi==23.1.0 (NO test deps)
+- test.sh: Installs curl → uv → pytest via uvx (CORRECT)
+
+Files Verified:
+1. environment/Dockerfile
+   - Lines 12-14: pip install Flask==3.0.0, argon2-cffi==23.1.0
+   - NO pytest, NO uv, NO curl in Dockerfile ✓
+   
+2. tests/test.sh
+   - Lines 4-5: apt-get install curl (at test time)
+   - Line 8: curl installs uv (at test time)
+   - Lines 22-28: uvx runs pytest with deps (at test time) ✓
+
+Created: /home/perice09/workspace/revisions/migrate-flask-auth-sha1-to-argon2id-submission-revised.zip
+
+The QC failure was from a corrupted zip file. The source code is correctly
+configured with test dependencies in test.sh, not in the Dockerfile.
+```
+
+---
+
 ## Agent Testing Instructions
 
 > **For tasks marked "Agent Testing Recommended"**, use this procedure to validate difficulty:
@@ -1767,8 +1831,8 @@ workspace/
 
 ## Statistics
 
-- **Total Revisions**: 8 (includes 3 iterations)
-- **Completed**: 6
+- **Total Revisions**: 9 (includes 3 iterations)
+- **Completed**: 7
 - **Pending**: 2
 - **In Progress**: 0
 - **Cancelled**: 0
@@ -1780,6 +1844,6 @@ workspace/
 
 ---
 
-*Last Updated: 2025-12-26 18:36*
+*Last Updated: 2025-12-31*
 *Template Version: 1.0*
 
