@@ -15,14 +15,17 @@ if [ "$PWD" = "/" ]; then
     exit 1
 fi
 
-# Pre-create reward file with failure state (will be overwritten on success)
-echo 0 > /logs/verifier/reward.txt
-
-# Don't change anything below this line
+# Run tests
 uvx \
   -p 3.11 \
   -w pytest==8.4.1 \
   -w pytest-json-ctrf==0.3.5 \
   -w requests==2.31.0 \
   -w argon2-cffi==23.1.0 \
-  pytest --ctrf /logs/verifier/ctrf.json /tests/test_outputs.py -rA && echo 1 > /logs/verifier/reward.txt
+  pytest --ctrf /logs/verifier/ctrf.json /tests/test_outputs.py -rA
+
+if [ $? -eq 0 ]; then
+  echo 1 > /logs/verifier/reward.txt
+else
+  echo 0 > /logs/verifier/reward.txt
+fi

@@ -1430,26 +1430,31 @@ Test Deps In Image │ fail │ The Dockerfile installs uv (a testing tool) in t
 ```
 COMPLETED: 2025-12-31
 
-Analysis:
+Initial Analysis:
 - Original zip files corrupted (missing 800MB+ bytes)
 - Source directory at snorkel-ai/migrate-flask-auth-sha1-to-argon2id/ verified correct
 - Dockerfile: Only Flask==3.0.0, argon2-cffi==23.1.0 (NO test deps)
 - test.sh: Installs curl → uv → pytest via uvx (CORRECT)
 
-Files Verified:
-1. environment/Dockerfile
-   - Lines 12-14: pip install Flask==3.0.0, argon2-cffi==23.1.0
-   - NO pytest, NO uv, NO curl in Dockerfile ✓
-   
-2. tests/test.sh
-   - Lines 4-5: apt-get install curl (at test time)
-   - Line 8: curl installs uv (at test time)
-   - Lines 22-28: uvx runs pytest with deps (at test time) ✓
+QC Build Run - Additional Fixes Required:
+1. ❌ Ruff F401: app/migrate.py:7 - `csv` imported but unused
+2. ❌ Ruff F401: tests/test_outputs.py:8 - `argon2` imported but unused  
+3. ❌ Ruff F401: tests/test_outputs.py:9 - `hashlib` imported but unused
+4. ❌ test.sh must end with required reward section format
+
+Fixes Applied:
+1. ✅ app/migrate.py - Removed unused `csv` import
+2. ✅ tests/test_outputs.py - Removed unused `argon2` and `hashlib` imports
+3. ✅ tests/test.sh - Changed from inline `&& echo 1` to proper if/else block:
+   - Before: pytest ... -rA && echo 1 > /logs/verifier/reward.txt
+   - After:  if [ $? -eq 0 ]; then echo 1 > ...; else echo 0 > ...; fi
+
+Files Modified:
+1. app/migrate.py - Line 7: Removed `import csv`
+2. tests/test_outputs.py - Lines 8-9: Removed `import argon2` and `import hashlib`
+3. tests/test.sh - Lines 25-30: Added proper reward section format
 
 Created: /home/perice09/workspace/revisions/migrate-flask-auth-sha1-to-argon2id-submission-revised.zip
-
-The QC failure was from a corrupted zip file. The source code is correctly
-configured with test dependencies in test.sh, not in the Dockerfile.
 ```
 
 ---
