@@ -94,11 +94,22 @@ chmod 700 "$GNUPGHOME"
 
 gpg --batch --yes --import "$KEY_FILE" >/tmp/gpg_import.log 2>&1 || true
 
-# Verify import succeeded by checking for keys in keyring
+# Verify import succeeded by checking for keys in keyring (this is the authoritative check)
 if ! gpg --list-secret-keys --with-colons 2>/dev/null | grep -q "^fpr:"; then
     echo "[oracle] Error: Key import failed - no keys found in keyring" >&2
     cat /tmp/gpg_import.log >&2 || true
     exit 1
+fi
+
+# Verify keyring files exist (per updated instruction requirement)
+# Note: GPG may create different keyring files depending on version, so check for any
+if [ ! -f "$GNUPGHOME/pubring.kbx" ] && [ ! -f "$GNUPGHOME/secring.gpg" ] && [ ! -f "$GNUPGHOME/pubring.gpg" ]; then
+    # If no standard keyring files, check if GPG can still list keys (some versions use different storage)
+    if ! gpg --list-secret-keys --with-colons 2>/dev/null | grep -q "^sec:"; then
+        echo "[oracle] Error: No keyring files found and GPG cannot list keys" >&2
+        exit 1
+    fi
+    # If GPG can list keys, keyring exists in some form, which is acceptable
 fi
 
 echo "[oracle] Step 3: Using imported keyring from successful candidate..."
@@ -108,11 +119,24 @@ echo "[oracle] Step 4: Decrypting ciphertext with recovered key..."
 # Decrypt the ciphertext
 # Use --batch --yes to avoid prompts, and --pinentry-mode loopback for non-interactive
 mkdir -p /output
-gpg --batch --yes --pinentry-mode loopback --decrypt --output /output/decrypted.txt ciphertext.asc 2>&1 | grep -v "^gpg:" || true
+gpg --batch --yes --pinentry-mode loopback --decrypt --output /output/decrypted.txt /app/ciphertext.asc >/tmp/gpg_decrypt.log 2>&1 || {
+    echo "[oracle] Error: Decryption failed" >&2
+    cat /tmp/gpg_decrypt.log >&2
+    exit 1
+}
 
-# Verify decryption succeeded
+# Verify decryption produced output
 if [ ! -f /output/decrypted.txt ] || [ ! -s /output/decrypted.txt ]; then
-    echo "[oracle] Error: Decryption failed or produced empty output" >&2
+    echo "[oracle] Error: Decryption produced no output file or empty file" >&2
+    cat /tmp/gpg_decrypt.log >&2
+    exit 1
+fi
+
+# Verify decrypted content matches expected message
+if ! grep -q "SECRET_MESSAGE_42" /output/decrypted.txt; then
+    echo "[oracle] Error: Decrypted content does not contain expected marker" >&2
+    echo "[oracle] Decrypted content:" >&2
+    cat /output/decrypted.txt >&2
     exit 1
 fi
 
