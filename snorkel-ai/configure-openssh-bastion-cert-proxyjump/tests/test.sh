@@ -3,6 +3,9 @@ set -euo pipefail
 
 mkdir -p /logs/verifier
 
+# Install test dependencies
+pip install --no-cache-dir pytest==8.3.3 >/dev/null 2>&1
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TEST_PATH="/tests/test_outputs.py"
 if [ ! -f "$TEST_PATH" ]; then

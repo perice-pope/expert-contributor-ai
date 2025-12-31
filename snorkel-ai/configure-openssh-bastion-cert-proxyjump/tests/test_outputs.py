@@ -101,6 +101,7 @@ def ssh_servers():
 
 
 def test_proxyjump_configured():
+    """Verify ProxyJump is configured through bastion and certificate file is set."""
     details = subprocess.check_output(
         ["ssh", "-G", "-F", str(SSH_CONFIG), "app-via-bastion"],
         text=True,
@@ -184,7 +185,53 @@ def test_known_hosts_hashed_and_ca_present():
     )
 
 
+def test_password_authentication_disabled():
+    """Verify PasswordAuthentication is disabled on both bastion and apphost sshd instances."""
+    bastion_config = BASTION_CONFIG.read_text()
+    app_config = APP_CONFIG.read_text()
+    
+    # Check bastion sshd_config
+    assert "PasswordAuthentication no" in bastion_config, (
+        "Bastion sshd_config must have PasswordAuthentication no"
+    )
+    
+    # Check apphost sshd_config
+    assert "PasswordAuthentication no" in app_config, (
+        "Apphost sshd_config must have PasswordAuthentication no"
+    )
+
+
+def test_ports_explicitly_configured():
+    """Verify bastion uses port 2222 and apphost uses port 2223."""
+    bastion_port = _port_from_config(BASTION_CONFIG)
+    app_port = _port_from_config(APP_CONFIG)
+    
+    assert bastion_port == 2222, f"Bastion must use port 2222, got {bastion_port}"
+    assert app_port == 2223, f"Apphost must use port 2223, got {app_port}"
+
+
+def test_userknownhostsfile_configured():
+    """Verify UserKnownHostsFile is set to /app/client/known_hosts via ssh -G."""
+    bastion_details = subprocess.check_output(
+        ["ssh", "-G", "-F", str(SSH_CONFIG), "bastion"],
+        text=True,
+    )
+    app_details = subprocess.check_output(
+        ["ssh", "-G", "-F", str(SSH_CONFIG), "app-via-bastion"],
+        text=True,
+    )
+    
+    # ssh -G outputs paths as written in config
+    assert "userknownhostsfile /app/client/known_hosts" in bastion_details.lower(), (
+        "Bastion host must have UserKnownHostsFile set to /app/client/known_hosts"
+    )
+    assert "userknownhostsfile /app/client/known_hosts" in app_details.lower(), (
+        "app-via-bastion host must have UserKnownHostsFile set to /app/client/known_hosts"
+    )
+
+
 def test_certificate_auth_via_proxyjump(ssh_servers):
+    """Verify successful SSH connection via ProxyJump using certificate authentication."""
     result = subprocess.run(
         [
             "ssh",
@@ -205,6 +252,7 @@ def test_certificate_auth_via_proxyjump(ssh_servers):
 
 
 def test_expired_cert_rejected(ssh_servers):
+    """Verify that expired certificates are rejected and do not allow authentication."""
     expired_cert = BASE / "client" / "id_client-expired-cert.pub"
     cfg = _config_with_cert(expired_cert)
     result = subprocess.run(
@@ -225,6 +273,7 @@ def test_expired_cert_rejected(ssh_servers):
 
 
 def test_wrong_principal_rejected(ssh_servers):
+    """Verify that certificates with wrong principals are rejected."""
     wrong_cert = BASE / "client" / "id_client-wrong-principal-cert.pub"
     cfg = _config_with_cert(wrong_cert)
     result = subprocess.run(

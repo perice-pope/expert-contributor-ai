@@ -2,9 +2,9 @@ Port 2222
 ListenAddress 127.0.0.1
 Protocol 2
 HostKey /app/bastion/ssh_host_ed25519_key
-PasswordAuthentication no
+# TODO: Configure to accept user CA for principal appuser (no passwords)
+# TODO: Add TrustedUserCAKeys directive
 PubkeyAuthentication yes
-TrustedUserCAKeys /app/ca/user_ca.pub
 AuthorizedKeysFile none
 AllowUsers appuser
 UsePAM no

@@ -2,11 +2,11 @@ Port 2223
 ListenAddress 127.0.0.1
 Protocol 2
 HostKey /app/apphost/ssh_host_ed25519_key
-HostCertificate /app/apphost/ssh_host_ed25519_key-cert.pub
-PasswordAuthentication no
+# TODO: Configure to present host certificate
+# TODO: Add HostCertificate directive
+# TODO: Configure to trust user CA via AuthorizedPrincipalsFile
+# TODO: Add TrustedUserCAKeys and AuthorizedPrincipalsFile directives
 PubkeyAuthentication yes
-TrustedUserCAKeys /app/ca/user_ca.pub
-AuthorizedPrincipalsFile /app/apphost/authorized_principals
 AllowUsers appuser
 UsePAM no
 ClientAliveInterval 60

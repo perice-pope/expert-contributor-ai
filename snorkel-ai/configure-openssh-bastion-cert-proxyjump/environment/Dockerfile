@@ -5,16 +5,16 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      openssh-client=1:9.2p1-2+deb12u7 \
-      openssh-server=1:9.2p1-2+deb12u7 \
-      passwd=1:4.13+dfsg1-1+deb12u1 \
-      netcat-openbsd=1.219-1 \
-      tini=0.19.0-1+b3 \
-      tmux=3.3a-3 \
-      asciinema=2.2.0-1 \
+      openssh-client \
+      openssh-server \
+      passwd \
+      netcat-openbsd \
+      tini \
+      tmux \
+      asciinema \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir pytest==8.3.3
+# pytest installed in test.sh, not in image
 
 WORKDIR /app
 

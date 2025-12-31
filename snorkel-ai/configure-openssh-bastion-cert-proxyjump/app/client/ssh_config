@@ -4,19 +4,20 @@ Host bastion
   User appuser
   IdentityFile /app/client/id_client
   CertificateFile /app/client/id_client-cert.pub
-  UserKnownHostsFile /app/client/known_hosts
-  StrictHostKeyChecking yes
+  # TODO: Set UserKnownHostsFile to /app/client/known_hosts
+  # TODO: Set StrictHostKeyChecking yes
   BatchMode yes
   LogLevel ERROR
 
-Host app-via-bastion
+Host apphost
   HostName 127.0.0.1
   Port 2223
   User appuser
   IdentityFile /app/client/id_client
   CertificateFile /app/client/id_client-cert.pub
-  ProxyJump bastion
-  UserKnownHostsFile /app/client/known_hosts
-  StrictHostKeyChecking yes
+  # TODO: Configure ProxyJump through bastion
+  # TODO: Rename host to app-via-bastion
+  # TODO: Set UserKnownHostsFile to /app/client/known_hosts
+  # TODO: Set StrictHostKeyChecking yes
   BatchMode yes
   LogLevel ERROR
