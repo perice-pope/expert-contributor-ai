@@ -1,8 +1,5 @@
 # Root BUILD file - depends on both C++ and Java targets
 
-load("//cpp:cpp.bzl", "cpp_library")
-load("//java:java.bzl", "java_library")
-
 # C++ library target
 cc_library(
     name = "cpp_lib",
@@ -15,7 +12,7 @@ cc_library(
 # Java library target
 java_library(
     name = "java_lib",
-    srcs = ["//java:Greeter.java"],
+    srcs = ["//java:greeter"],
     deps = [],
     visibility = ["//visibility:public"],
 )

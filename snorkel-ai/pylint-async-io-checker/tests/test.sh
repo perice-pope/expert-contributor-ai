@@ -19,9 +19,12 @@ if [ "$PWD" = "/" ]; then
     exit 1
 fi
 
-# Run tests and write reward on success
-python3 -m pytest /tests/test_outputs.py -rA && echo 1 > /logs/verifier/reward.txt
+# Run tests
+python3 -m pytest /tests/test_outputs.py -rA
 
-# Ensure files are synced to disk before container exits
-sync
-sleep 1
+# Write reward based on test result
+if [ $? -eq 0 ]; then
+  echo 1 > /logs/verifier/reward.txt
+else
+  echo 0 > /logs/verifier/reward.txt
+fi
