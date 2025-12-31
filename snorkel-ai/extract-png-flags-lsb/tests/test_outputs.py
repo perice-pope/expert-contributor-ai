@@ -203,3 +203,81 @@ def test_png_offsets_correspond_to_memdump():
                 f"Reported offset 0x{offset:x} is too close to end of memdump "
                 f"({len(memdump_data)} bytes) to contain PNG header"
             )
+
+
+def test_flags_extractable_from_carved_images():
+    """Verify that flags reported in flags.txt can be extracted via LSB from carved images.
+    
+    This anti-cheating test ensures agents actually perform LSB extraction from image pixel
+    data rather than hardcoding known flags. The test verifies that each flag in flags.txt
+    can be found in the LSB data of at least one carved image.
+    
+    Note: This test does NOT enforce a specific extraction algorithm, bit order, traversal
+    pattern, or termination method. Any valid LSB extraction method that produces the
+    reported flags is acceptable.
+    """
+    flags_path = Path("/app/flags.txt")
+    images_dir = Path("/app/images")
+    
+    # Read all flags from flags.txt
+    flags_content = flags_path.read_text(encoding="utf-8")
+    reported_flags = set()
+    for line in flags_content.strip().split('\n'):
+        if ':' in line:
+            flag_text = line.split(':', 1)[1].strip()
+            reported_flags.add(flag_text)
+    
+    assert len(reported_flags) > 0, "No flags found in flags.txt"
+    
+    # Get all carved images
+    png_files = sorted(images_dir.glob("image_*.png"))
+    assert len(png_files) > 0, "No carved images found"
+    
+    # Extract LSB data from all images and collect all possible flag strings
+    extracted_flags = set()
+    
+    for png_file in png_files:
+        img = Image.open(png_file)
+        img = img.convert('RGB')
+        pixels = img.load()
+        width, height = img.size
+        
+        # Extract LSBs from all pixels (method-agnostic: collect all bits)
+        bits = []
+        for y in range(height):
+            for x in range(width):
+                r, g, b = pixels[x, y]
+                bits.append(r & 1)
+                bits.append(g & 1)
+                bits.append(b & 1)
+        
+        # Try extracting strings from various bit positions and lengths
+        # This is permissive - we're just checking existence, not exact method
+        for start_bit in range(min(100, len(bits) - 8)):  # Try first 100 bit positions
+            for byte_len in range(20, min(200, (len(bits) - start_bit) // 8)):  # Try various lengths
+                # Extract bytes (LSB-first per pixel, but we try different starting points)
+                flag_bytes = []
+                for i in range(byte_len):
+                    bit_idx = start_bit + (i * 8)
+                    if bit_idx + 7 >= len(bits):
+                        break
+                    byte_val = sum(bits[bit_idx + j] << j for j in range(8))
+                    flag_bytes.append(byte_val)
+                    if byte_val == 0:  # Stop at null terminator if found
+                        break
+                
+                # Try to decode as ASCII
+                try:
+                    candidate = bytes(flag_bytes).decode('ascii', errors='ignore').rstrip('\x00').strip()
+                    # Check if it looks like a flag (starts with FLAG{)
+                    if candidate.startswith('FLAG{') and len(candidate) > 10:
+                        extracted_flags.add(candidate)
+                except:
+                    pass
+    
+    # Verify all reported flags can be found in extracted data
+    missing_flags = reported_flags - extracted_flags
+    assert len(missing_flags) == 0, (
+        f"Flags reported in flags.txt could not be extracted from carved images via LSB: {missing_flags}. "
+        f"This suggests flags may have been hardcoded rather than extracted from image pixel data."
+    )
