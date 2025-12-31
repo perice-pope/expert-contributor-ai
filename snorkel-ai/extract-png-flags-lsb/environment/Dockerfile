@@ -6,8 +6,7 @@ RUN apt-get update && \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pinned Python dependencies
-# Pillow 10.0.0 for image processing
+# Install Pillow (required by solution for image processing)
 RUN pip install --no-cache-dir Pillow==10.0.0
 
 # Set working directory

@@ -8,6 +8,7 @@ A forensic analyst has captured a raw memory dump from a compromised system. The
 2. **Extract images**: Save each carved PNG image to `/app/images/` with descriptive filenames (e.g., `image_0.png`, `image_1.png`, etc.).
 3. **Extract LSB-encoded flags**: For each PNG image, extract ASCII text flags hidden in the least significant bits of RGB pixel data. Flags are encoded sequentially across pixels (R, G, B channels) until a null terminator or end of image data.
 4. **Document findings**: Write all recovered flags along with their byte offsets in the memory dump to `/app/flags.txt`. Format: one flag per line with offset in hexadecimal (e.g., `0x1234: FLAG{example_flag_here}`).
+5. **Expected flags**: You must extract exactly three flags from the memory dump, matching the following ASCII strings: `FLAG{hidden_in_plain_sight}`, `FLAG{lsb_steganography_rocks}`, and `FLAG{memory_forensics_ftw}`.
 
 ## Constraints
 

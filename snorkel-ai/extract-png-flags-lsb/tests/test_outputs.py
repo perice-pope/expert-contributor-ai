@@ -148,3 +148,58 @@ def test_images_match_expected_count():
     assert len(png_files) >= flag_count, (
         f"Number of carved images ({len(png_files)}) is less than number of flags ({flag_count})"
     )
+
+
+def test_png_offsets_correspond_to_memdump():
+    """Verify that reported PNG offsets actually contain PNG headers in memdump.raw.
+    
+    This anti-cheating test ensures agents cannot pass by hardcoding flags with fake offsets.
+    Each reported offset must correspond to a real PNG header in the memory dump.
+    """
+    flags_path = Path("/app/flags.txt")
+    memdump_path = Path("/app/memdump.raw")
+    
+    # PNG header magic bytes: \x89PNG\r\n\x1a\n
+    PNG_HEADER = b'\x89\x50\x4E\x47\x0D\x0A\x1A\x0A'
+    
+    # Read flags file
+    content = flags_path.read_text(encoding="utf-8")
+    
+    # Read memory dump
+    with open(memdump_path, 'rb') as f:
+        memdump_data = f.read()
+    
+    # Parse each flag line and verify offset
+    for line in content.strip().split('\n'):
+        if not line.strip() or ':' not in line:
+            continue
+        
+        # Extract offset (format: 0x<hex>: <flag>)
+        offset_part = line.split(':', 1)[0].strip()
+        assert offset_part.startswith('0x'), (
+            f"Offset does not start with '0x': {offset_part}"
+        )
+        
+        # Convert hex offset to integer
+        try:
+            offset = int(offset_part[2:], 16)
+        except ValueError:
+            assert False, f"Invalid hexadecimal offset: {offset_part}"
+        
+        # Verify offset is within memdump bounds
+        assert offset < len(memdump_data), (
+            f"Reported offset 0x{offset:x} is beyond memdump size ({len(memdump_data)} bytes)"
+        )
+        
+        # Verify PNG header exists at this offset
+        if offset + len(PNG_HEADER) <= len(memdump_data):
+            header_at_offset = memdump_data[offset:offset + len(PNG_HEADER)]
+            assert header_at_offset == PNG_HEADER, (
+                f"PNG header not found at reported offset 0x{offset:x}. "
+                f"Expected {PNG_HEADER.hex()}, found {header_at_offset.hex()}"
+            )
+        else:
+            assert False, (
+                f"Reported offset 0x{offset:x} is too close to end of memdump "
+                f"({len(memdump_data)} bytes) to contain PNG header"
+            )
