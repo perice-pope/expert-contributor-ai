@@ -6,7 +6,7 @@ A security incident response team has captured a memory dump from a compromised 
 
 1. **Analyze memory dump**: The file `/app/memory.dump` contains a forensic capture of process memory that may include cryptographic artifacts.
 2. **Recover key material**: Locate and extract any cryptographic key data from the memory regions. The dump may contain fragmented, corrupted, or obfuscated data that requires careful reconstruction.
-3. **Import the key**: Import the recovered private key into the default GPG keyring (for example using `gpg --import`) before decrypting the ciphertext.
+3. **Import the key**: Import the recovered private key into the default GPG keyring (for example using `gpg --import`) so that it is persisted in the default GPG home directory (`~/.gnupg/`) and discoverable via standard GPG commands (e.g., `gpg --list-secret-keys`) before decrypting the ciphertext.
 4. **Decrypt ciphertext**: Successfully decrypt `/app/ciphertext.asc` and write the plaintext to `/output/decrypted.txt`.
 
 ## Constraints
