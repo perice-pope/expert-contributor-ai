@@ -6,7 +6,7 @@ You have two local sshd instances acting as a bastion (port 2222) and an interna
 1. Create an SSH user CA and host CA under `/app/ca/`, sign the provided bastion and internal host keys with the host CA, and sign the provided client key for principal `appuser` with the user CA (no passwords or raw public keys).
 2. Configure bastion sshd at `/app/bastion/sshd_config` (port 2222) to accept only the user CA for `appuser`, disable password auth, and serve its host certificate.
 3. Configure internal sshd at `/app/internal/sshd_config` (port 2223) to use its host certificate, trust the same user CA via `AuthorizedPrincipalsFile` containing `appuser`, and disallow password/keyboard-interactive auth.
-4. Update the client config `/app/client/ssh_config` to use ProxyJump through the bastion, ControlMaster/ControlPath (e.g., `/tmp/ssh-%r@%h:%p`) for multiplexing, `StrictHostKeyChecking yes`, the provided key + certificate, and only `/app/client/known_hosts` for host trust.
+4. Update the client config `/app/client/ssh_config` to use ProxyJump through the bastion, ControlMaster/ControlPath (e.g., `/tmp/ssh-%r@%h:%p`) with ControlPersist for connection multiplexing, `StrictHostKeyChecking yes`, the provided key + certificate, and only `/app/client/known_hosts` for host trust.
 5. Hash `/app/client/known_hosts` and include both `@cert-authority` for the host CA and the bastion host key so `ssh` and `scp` to `app-via-bastion` run non-interactively with `StrictHostKeyChecking=yes`, while attempts with an unsigned key or a wrong/expired cert fail.
 
 ## Constraints

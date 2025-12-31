@@ -12,7 +12,7 @@ RUN apt-get update && \
       ca-certificates=20230311+deb12u1 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir --break-system-packages pytest==8.3.3
+# Note: pytest is installed in tests/test.sh, not in the Docker image
 
 WORKDIR /app
 

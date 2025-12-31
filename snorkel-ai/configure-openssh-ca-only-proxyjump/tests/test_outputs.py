@@ -137,6 +137,7 @@ def sshd():
 
 
 def test_ca_material_present():
+    """Verify that all required CA keys, certificates, and signed host/user certs are present."""
     user_ca = BASE / "ca" / "ssh_user_ca"
     host_ca = BASE / "ca" / "ssh_host_ca"
     assert user_ca.exists()
@@ -155,6 +156,7 @@ def test_ca_material_present():
 
 
 def test_config_enforces_ca_only():
+    """Verify that both sshd configs enforce CA-only authentication with no password/keyboard-interactive auth and proper host certificate presentation."""
     bastion_conf = BASTION_CONFIG.read_text()
     internal_conf = INTERNAL_CONFIG.read_text()
     assert "TrustedUserCAKeys" in bastion_conf
@@ -172,6 +174,7 @@ def test_config_enforces_ca_only():
 
 
 def test_client_configured_for_proxyjump_and_control():
+    """Verify that client ssh_config has ProxyJump, ControlMaster, ControlPersist, CertificateFile, UserKnownHostsFile, and StrictHostKeyChecking configured correctly."""
     output = subprocess.check_output(
         ["ssh", "-G", "-F", str(SSH_CONFIG), "app-via-bastion"],
         text=True,
@@ -186,6 +189,7 @@ def test_client_configured_for_proxyjump_and_control():
 
 
 def test_known_hosts_hashed_and_ca_listed():
+    """Verify that known_hosts is hashed (contains |1| markers) and includes @cert-authority entries for both bastion and internal hosts."""
     text = KNOWN_HOSTS.read_text()
     assert "@cert-authority" in text, "Host CA entry missing"
     assert "|1|" in text, "known_hosts should contain hashed entries"
@@ -206,6 +210,7 @@ def test_known_hosts_hashed_and_ca_listed():
 
 
 def test_ssh_and_scp_work(sshd):
+    """Verify that ssh and scp commands work non-interactively through ProxyJump with ControlMaster, and that ControlPath socket is created."""
     env = {"SSH_AUTH_SOCK": "", **os.environ}
     result = subprocess.run(
         [
@@ -255,6 +260,7 @@ def test_ssh_and_scp_work(sshd):
 
 
 def test_raw_key_rejected(sshd):
+    """Verify that authentication attempts using raw (unsigned) keys are rejected when certificate authentication is required."""
     _resolved_control_path().unlink(missing_ok=True)
     cfg = _config_without_cert()
     result = subprocess.run(
@@ -279,6 +285,7 @@ def test_raw_key_rejected(sshd):
 
 
 def test_password_auth_disabled(sshd):
+    """Verify that password authentication is disabled and cannot be used even when explicitly requested."""
     _resolved_control_path().unlink(missing_ok=True)
     result = subprocess.run(
         [
