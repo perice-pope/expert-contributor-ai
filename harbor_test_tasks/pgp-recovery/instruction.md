@@ -24,7 +24,7 @@ A security incident response team has captured a memory dump from a compromised 
 
 ## Outputs
 
-- `/output/decrypted.txt` (the decrypted plaintext message)
+- `/output/decrypted.txt` (the decrypted plaintext message; must exactly equal "SECRET_MESSAGE_42: The quick brown fox jumps over the lazy dog. Recovery successful!")
 
 ## Notes
 
