@@ -272,7 +272,7 @@ def test_flags_extractable_from_carved_images():
                     # Check if it looks like a flag (starts with FLAG{)
                     if candidate.startswith('FLAG{') and len(candidate) > 10:
                         extracted_flags.add(candidate)
-                except:
+                except Exception:
                     pass
     
     # Verify all reported flags can be found in extracted data
