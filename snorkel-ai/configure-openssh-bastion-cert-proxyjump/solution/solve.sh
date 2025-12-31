@@ -44,6 +44,10 @@ CONF
 echo "appuser" > "$ROOT/apphost/authorized_principals"
 
 cat <<CONF > "$ROOT/client/ssh_config"
+# Connection multiplexing configured for bastion only
+# ProxyJump connections work better without global ControlMaster
+Compression yes
+
 Host bastion
   HostName 127.0.0.1
   Port 2222
@@ -54,6 +58,9 @@ Host bastion
   StrictHostKeyChecking yes
   BatchMode yes
   LogLevel ERROR
+  ControlMaster auto
+  ControlPath /tmp/ssh-%r@%h:%p
+  ControlPersist 10m
 
 Host app-via-bastion
   HostName 127.0.0.1

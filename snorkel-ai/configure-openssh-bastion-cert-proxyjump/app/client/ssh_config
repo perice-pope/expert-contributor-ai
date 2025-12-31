@@ -1,3 +1,9 @@
+# Connection multiplexing for performance (optimize connection reuse)
+ControlMaster auto
+ControlPath /tmp/ssh-%r@%h:%p
+ControlPersist 10m
+Compression yes
+
 Host bastion
   HostName 127.0.0.1
   Port 2222
