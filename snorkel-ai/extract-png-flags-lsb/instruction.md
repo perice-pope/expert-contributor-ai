@@ -6,9 +6,9 @@ A forensic analyst has captured a raw memory dump from a compromised system. The
 
 1. **Carve PNG files from memory dump**: Parse `/app/memdump.raw` to locate all embedded PNG images by identifying their magic headers (`89 50 4E 47 0D 0A 1A 0A`) and footers (`49 45 4E 44 AE 42 60 82`).
 2. **Extract images**: Save each carved PNG image to `/app/images/` with descriptive filenames (e.g., `image_0.png`, `image_1.png`, etc.).
-3. **Extract LSB-encoded flags**: For each PNG image, extract ASCII text flags hidden in the least significant bits of RGB pixel data. Flags are encoded sequentially across pixels (R, G, B channels) until a null terminator or end of image data.
-4. **Document findings**: Write all recovered flags along with their byte offsets in the memory dump to `/app/flags.txt`. Format: one flag per line with offset in hexadecimal (e.g., `0x1234: FLAG{example_flag_here}`).
-5. **Expected flags**: You must extract exactly three flags from the memory dump, matching the following ASCII strings: `FLAG{hidden_in_plain_sight}`, `FLAG{lsb_steganography_rocks}`, and `FLAG{memory_forensics_ftw}`.
+3. **Extract LSB-encoded flags**: For each PNG image, extract ASCII text flags hidden in the least significant bits of RGB pixel data. Flags are encoded sequentially across pixels (R, G, B channels) until a null terminator or end of image data. Note: Not all carved PNG images will contain valid flags; some may contain noise or decoy data. You must identify and extract the valid flags corresponding to the expected set; some extracted data may be noise or decoys that should be filtered out.
+4. **Document findings**: Write all recovered flags along with their byte offsets in the memory dump to `/app/flags.txt`. Format: one flag per line with offset in hexadecimal (e.g., `0x1234: FLAG{example_flag_here}`). Include only valid flags that correspond to the expected forensic findings.
+5. **Expected flags**: You must extract at least three flags from the memory dump, including the following ASCII strings: `FLAG{hidden_in_plain_sight}`, `FLAG{lsb_steganography_rocks}`, and `FLAG{memory_forensics_ftw}`. Some carved images may contain noise or decoy data that should be ignored.
 
 ## Constraints
 
@@ -17,6 +17,7 @@ A forensic analyst has captured a raw memory dump from a compromised system. The
 - **Use Python 3** with standard libraries and Pillow (PIL) for image processing.
 - **LSB extraction**: Read LSBs sequentially from RGB channels (R, G, B order per pixel) until a null byte (`\x00`) is encountered or image data is exhausted.
 - **PNG validation**: Only extract PNGs that have valid headers and footers. Handle fragmented images gracefully.
+- **Signal vs noise**: Not all carved PNG images contain valid flags. Some images may contain noise, decoy data, or no extractable text. You must distinguish valid flags from noise and only report flags that correspond to the expected forensic findings.
 - **Output directory**: Create `/app/images/` if it doesn't exist.
 
 ## Files

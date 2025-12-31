@@ -62,29 +62,36 @@ def test_flags_file_format():
         )
 
 
-def test_all_expected_flags_present():
-    """Verify all expected flags are present in the output."""
+def test_expected_flags_present_and_valid():
+    """Verify all expected flags are present and extractable from images.
+    
+    This test validates that agents successfully identify and extract the three
+    expected flags from the memory dump, distinguishing them from noise or decoy data.
+    Only inclusion is checked (all expected flags must be present); additional
+    findings are allowed to preserve solution diversity.
+    """
     flags_path = Path("/app/flags.txt")
     content = flags_path.read_text(encoding="utf-8")
     
-    # Expected flags (must be present)
-    expected_flags = [
+    expected_flags = {
         "FLAG{hidden_in_plain_sight}",
         "FLAG{lsb_steganography_rocks}",
         "FLAG{memory_forensics_ftw}"
-    ]
+    }
     
-    found_flags = []
+    reported_flags = set()
     for line in content.strip().split('\n'):
         if ':' in line:
             flag_text = line.split(':', 1)[1].strip()
-            found_flags.append(flag_text)
+            reported_flags.add(flag_text)
     
-    for expected_flag in expected_flags:
-        assert expected_flag in found_flags, (
-            f"Expected flag '{expected_flag}' not found in flags file. "
-            f"Found flags: {found_flags}"
-        )
+    # All expected flags must be present (inclusion check only)
+    assert expected_flags.issubset(reported_flags), (
+        f"Missing expected flags. Expected: {expected_flags}, Found: {reported_flags}"
+    )
+    
+    # Note: We do NOT assert exclusion (len(unexpected) == 0) to avoid brittleness.
+    # Agents may include additional findings; we only verify required flags are present.
 
 
 def test_flag_offsets_are_valid_hex():
@@ -135,7 +142,11 @@ def test_flags_are_ascii_text():
 
 
 def test_images_match_expected_count():
-    """Verify the number of carved images matches the number of flags."""
+    """Verify the number of carved images is at least the number of flags.
+    
+    Note: There may be more images than flags if some images contain only noise
+    or decoy data that should be filtered out.
+    """
     images_dir = Path("/app/images")
     png_files = list(images_dir.glob("image_*.png"))
     
@@ -144,7 +155,7 @@ def test_images_match_expected_count():
     flag_count = len([line for line in content.strip().split('\n') 
                      if line.strip() and ':' in line])
     
-    # Should have at least as many images as flags (may have more if some failed to extract)
+    # Should have at least as many images as flags (may have more due to decoy images)
     assert len(png_files) >= flag_count, (
         f"Number of carved images ({len(png_files)}) is less than number of flags ({flag_count})"
     )

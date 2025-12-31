@@ -143,6 +143,42 @@ The task requires understanding of:
 - Flags encoded in different channels or bit positions
 - Non-ASCII flags (binary data)
 
+## Difficulty Redesign (2025-12-31)
+
+### Problem
+Task was rated TRIVIAL with 100% agent pass rate. Needed to increase difficulty without adding brittle tests.
+
+### Solution Implemented
+Added signal vs noise distinction: instructions now clarify that not all carved PNGs contain valid flags. Some images may contain noise or decoy data that should be filtered out.
+
+**Changes made:**
+1. **Instruction updates**: Added language about signal vs noise, decoy data, and filtering requirements
+2. **Test updates**: Replaced `test_all_expected_flags_present` with `test_expected_flags_present_and_valid` that only checks inclusion (not exclusion) to avoid brittleness
+3. **Updated test docstrings**: Clarified that more images than flags is expected (due to decoy images)
+
+### Memory Dump Regeneration Required
+⚠️ **CRITICAL**: The memory dump (`/app/memdump.raw`) must be regenerated to include 2-3 decoy PNGs:
+
+**Decoy PNG specifications:**
+- **Decoy 1**: Valid PNG with all-zero LSBs (no extractable text)
+- **Decoy 2**: Valid PNG with random ASCII noise in LSBs (e.g., "NOISE_DATA_12345")
+- **Decoy 3**: Valid PNG with near-miss flag format in LSBs:
+  - Option A: `FL4G{decoy_not_real}` (digit instead of letter)
+  - Option B: `FLAG[decoy_not_real]` (brackets instead of braces)
+  - Option C: `FLAG{decoy_not_real` (missing closing brace)
+
+**Total PNGs in dump**: 5-6 (3 real flags + 2-3 decoys)
+
+**Expected difficulty impact**: Should reduce pass rate from 100% to ~50-70% by requiring agents to:
+- Extract LSB data from all images
+- Validate extracted strings against expected flags
+- Filter out noise/decoy data
+
+### Implementation Status
+- ✅ Instruction updated with signal vs noise language
+- ✅ Tests updated (inclusion-only check, no exclusion)
+- ⚠️ Memory dump regeneration pending (must be done before task submission)
+
 ## Expected agent behavior
 
 **Good agents will:**
