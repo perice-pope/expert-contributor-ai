@@ -559,6 +559,18 @@ harbor run --agent oracle --path harbor_tasks/<task-name> --interactive
 * Create `tests/test.sh`
 * pytest MUST use `-rA`
 * Must write `/logs/verifier/reward.txt`
+* **⚠️ CRITICAL: Reward Output Requirements (MANDATORY)**
+  * Rewards MUST be binary: either `0` (any test fails) or `1` (all tests pass)
+  * **PARTIAL REWARDS ARE EXPLICITLY FORBIDDEN** (no 0.25, 0.5, etc.)
+  * Every `test.sh` file MUST use this exact pattern:
+    ```bash
+    if [ $? -eq 0 ]; then
+      echo 1 > /logs/verifier/reward.txt
+    else
+      echo 0 > /logs/verifier/reward.txt
+    fi
+    ```
+  * Submissions that do not use this exact logic or assign partial rewards will be blocked
 * Mark Step 6 complete
 
 ---

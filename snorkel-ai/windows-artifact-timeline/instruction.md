@@ -39,5 +39,5 @@ You've been given a set of Windows forensic artifacts from an incident investiga
 
 ## Outputs
 
-- `/output/timeline.csv`: CSV file with columns `timestamp`, `event_type`, `source`, `details`, `anomaly_flag`, `anomaly_reason`. All timestamps in UTC ISO 8601 format.
+- `/output/timeline.csv`: CSV file with columns `timestamp`, `event_type`, `source`, `details`, `anomaly_flag`, `anomaly_reason`. All timestamps in UTC ISO 8601 format. When `anomaly_flag` is `true`, the `anomaly_reason` column must contain a descriptive text explanation of why the event is flagged as anomalous.
 - `/output/suspicious_events.json`: JSON file with array of suspicious event objects, each containing `timestamp`, `event_type`, `source`, `details`, `anomaly_type`, `reason`.

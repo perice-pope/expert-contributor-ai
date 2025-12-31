@@ -108,6 +108,28 @@ fi
 
 Install test-only dependencies here, not in the Dockerfile. The script must produce `/logs/verifier/reward.txt` or `/logs/verifier/reward.json`.
 
+### ⚠️ CRITICAL: Reward Output Requirements (MANDATORY)
+
+**Rewards must be binary (0 or 1 only):**
+- ✅ `1` = All tests pass
+- ❌ `0` = Any test fails
+- 🚫 **PARTIAL REWARDS ARE EXPLICITLY FORBIDDEN** (no 0.25, 0.5, 0.75, etc.)
+
+**Required pattern:**
+Every `test.sh` file MUST use this exact logic:
+```bash
+if [ $? -eq 0 ]; then
+  echo 1 > /logs/verifier/reward.txt
+else
+  echo 0 > /logs/verifier/reward.txt
+fi
+```
+
+**Enforcement:**
+- Submissions are checked to ensure every `test.sh` contains this exact pattern
+- Any `test.sh` that does not use this exact logic, or assigns partial rewards in any way, will be blocked
+- This is a hard check in the task skeleton and submission validation
+
 ## Common Patterns
 
 ### Testing file output
