@@ -5,7 +5,6 @@ set -euo pipefail
 pip3 install --no-cache-dir --break-system-packages pytest==8.3.3
 
 mkdir -p /logs/verifier
-
 set +e
 python3 -m pytest -q -rA /tests/test_outputs.py
 if [ $? -eq 0 ]; then
