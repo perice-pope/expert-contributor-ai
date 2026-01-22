@@ -22,3 +22,8 @@ chmod 644 \
   "$ROOT/apphost/ssh_host_ed25519_key-cert.pub" \
   "$ROOT/client/known_hosts" \
   "$ROOT/apphost/authorized_principals"
+
+if id appuser >/dev/null 2>&1; then
+  chown appuser:appuser "$ROOT/apphost"
+  chown appuser:appuser "$ROOT/apphost/authorized_principals"
+fi

@@ -154,9 +154,9 @@ def test_flags_match_expected_format():
     """Verify extracted flags match the expected FLAG{...} pattern."""
     flags_path = Path("/app/flags.txt")
     content = flags_path.read_text(encoding="utf-8")
-    pattern = re.compile(r'^FLAG\\{[A-Za-z0-9_]+\\}$')
+    pattern = re.compile(r'^FLAG\{[A-Za-z0-9_]+\}$')
 
-    for line in content.strip().split('\\n'):
+    for line in content.strip().split('\n'):
         if ':' not in line:
             continue
         flag_text = line.split(':', 1)[1].strip()

@@ -1,4 +1,5 @@
 import os
+import shutil
 import socket
 import subprocess
 import time
@@ -36,12 +37,125 @@ def _wait_for_port(port: int, timeout: float = 10.0) -> None:
     raise AssertionError(f"Port {port} did not open in time: {last_error}")
 
 
+def _unlock_user(username: str) -> None:
+    if shutil.which("passwd"):
+        _run_root(["passwd", "-d", username], check=False)
+    if shutil.which("usermod"):
+        _run_root(["usermod", "-U", username], check=False)
+
+
+def _ensure_user_files(username: str) -> None:
+    passwd_path = Path("/etc/passwd")
+    group_path = Path("/etc/group")
+    shadow_path = Path("/etc/shadow")
+
+    passwd_entries = passwd_path.read_text().splitlines()
+    if any(line.split(":", 1)[0] == username for line in passwd_entries):
+        return
+
+    used_uids = []
+    used_gids = []
+    for line in passwd_entries:
+        parts = line.split(":")
+        if len(parts) >= 4:
+            try:
+                used_uids.append(int(parts[2]))
+                used_gids.append(int(parts[3]))
+            except ValueError:
+                continue
+
+    candidate = 1000
+    while candidate in used_uids or candidate in used_gids:
+        candidate += 1
+    uid = candidate
+    gid = candidate
+
+    group_entries = group_path.read_text().splitlines()
+    if not any(line.split(":", 1)[0] == username for line in group_entries):
+        _append_line(group_path, f"{username}:x:{gid}:")
+
+    home_dir = Path("/home") / username
+    _append_line(passwd_path, f"{username}:x:{uid}:{gid}:{username}:{home_dir}:/bin/bash")
+
+    _ensure_dir_owned(home_dir, uid, gid)
+
+    if shadow_path.exists():
+        if os.geteuid() == 0:
+            shadow_entries = shadow_path.read_text().splitlines()
+            if not any(line.split(":", 1)[0] == username for line in shadow_entries):
+                _append_line(shadow_path, f"{username}::0:0:99999:7:::")
+        elif shutil.which("sudo"):
+            check = subprocess.run(
+                ["sudo", "-n", "grep", "-q", f"^{username}:", str(shadow_path)],
+                check=False,
+            )
+            if check.returncode != 0:
+                _append_line(shadow_path, f"{username}::0:0:99999:7:::")
+
+
 def _ensure_user(username: str) -> None:
     result = subprocess.run(["id", username], capture_output=True)
     if result.returncode != 0:
-        subprocess.run(["useradd", "-m", "-s", "/bin/bash", username], check=True)
-    subprocess.run(["passwd", "-d", username], check=False)
-    subprocess.run(["usermod", "-U", username], check=False)
+        if shutil.which("useradd"):
+            subprocess.run(["useradd", "-m", "-s", "/bin/bash", username], check=True)
+        else:
+            _ensure_user_files(username)
+    _unlock_user(username)
+
+
+def _append_line(path: Path, line: str) -> None:
+    if os.geteuid() == 0:
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+        return
+    if shutil.which("sudo"):
+        subprocess.run(
+            ["sudo", "-n", "tee", "-a", str(path)],
+            input=line + "\n",
+            text=True,
+            stdout=subprocess.DEVNULL,
+            check=True,
+        )
+        return
+    raise PermissionError(f"Cannot write to {path} without sudo")
+
+
+def _ensure_dir_owned(path: Path, uid: int, gid: int) -> None:
+    if os.geteuid() == 0:
+        path.mkdir(parents=True, exist_ok=True)
+        os.chown(path, uid, gid)
+        return
+    if shutil.which("sudo"):
+        subprocess.run(["sudo", "-n", "mkdir", "-p", str(path)], check=True)
+        subprocess.run(["sudo", "-n", "chown", f"{uid}:{gid}", str(path)], check=True)
+        return
+    raise PermissionError(f"Cannot create {path} without sudo")
+
+
+def _ensure_dir(path: Path) -> None:
+    if os.geteuid() == 0:
+        path.mkdir(parents=True, exist_ok=True)
+        return
+    if shutil.which("sudo"):
+        subprocess.run(["sudo", "-n", "mkdir", "-p", str(path)], check=True)
+        return
+    raise PermissionError(f"Cannot create {path} without sudo")
+
+
+def _run_root(cmd, **kwargs):
+    if os.geteuid() == 0:
+        return subprocess.run(cmd, **kwargs)
+    if shutil.which("sudo"):
+        return subprocess.run(["sudo", "-n", *cmd], **kwargs)
+    raise PermissionError("Root privileges required but sudo is unavailable")
+
+
+def _popen_root(cmd, **kwargs):
+    if os.geteuid() == 0:
+        return subprocess.Popen(cmd, **kwargs)
+    if shutil.which("sudo"):
+        return subprocess.Popen(["sudo", "-n", *cmd], **kwargs)
+    raise PermissionError("Root privileges required but sudo is unavailable")
 
 
 def _config_with_cert(cert_path: Path) -> Path:
@@ -59,7 +173,7 @@ def _config_with_cert(cert_path: Path) -> Path:
 
 def _start_sshd(config_path: Path, runtime_dir: Path):
     runtime_dir.mkdir(parents=True, exist_ok=True)
-    check = subprocess.run(
+    check = _run_root(
         ["/usr/sbin/sshd", "-t", "-f", str(config_path)],
         capture_output=True,
         text=True,
@@ -67,7 +181,7 @@ def _start_sshd(config_path: Path, runtime_dir: Path):
     assert check.returncode == 0, f"sshd config check failed: {check.stderr}"
 
     logfile = runtime_dir / "sshd.log"
-    proc = subprocess.Popen(
+    proc = _popen_root(
         ["/usr/sbin/sshd", "-D", "-f", str(config_path), "-E", str(logfile)],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -88,8 +202,8 @@ def _stop_proc(proc: subprocess.Popen):
 @pytest.fixture(scope="session")
 def ssh_servers():
     _ensure_user("appuser")
-    Path("/var/run/sshd").mkdir(parents=True, exist_ok=True)
-    subprocess.run([f"{BASE}/bin/fix_permissions.sh"], check=True)
+    _ensure_dir(Path("/var/run/sshd"))
+    _run_root([f"{BASE}/bin/fix_permissions.sh"], check=True)
 
     bastion_proc = _start_sshd(BASTION_CONFIG, Path("/tmp/sshd-bastion"))
     app_proc = _start_sshd(APP_CONFIG, Path("/tmp/sshd-app"))

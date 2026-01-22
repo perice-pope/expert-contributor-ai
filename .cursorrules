@@ -15,6 +15,7 @@ You are an expert advisor managing a monorepo with multiple project subdirectori
 3. **Execute in Context:** 
     - Change directory (`cd`) into the specific `./snorkel-ai/[project-name]` folder.
     - Run local tests only for that sub-folder.
+    - If you changed code, run the Oracle checks and require them to pass before zipping.
 4. **Automated Submission:** 
     - Change directory (`cd`) into the specific `./snorkel-ai/[project-name]` folder.
     - Run the command: `zip -r ../../submissions/[project-name].zip .` (adjust paths based on current folder).
