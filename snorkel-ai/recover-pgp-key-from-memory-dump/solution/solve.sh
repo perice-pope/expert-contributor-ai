@@ -58,6 +58,10 @@ fi
 
 echo "[oracle] Step 2: Importing best candidate key..."
 
+# Persist the cleaned key for verification
+mkdir -p /output
+cp "$KEY_FILE" /output/recovered_key.asc
+
 # Reset GPG home for clean import
 export GNUPGHOME=/root/.gnupg
 rm -rf "$GNUPGHOME"

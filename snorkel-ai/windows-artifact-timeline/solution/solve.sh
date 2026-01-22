@@ -100,11 +100,16 @@ def parse_evtx_events(evtx_file: Path) -> List[Dict[str, Any]]:
                 # Service start event
                 service_match = re.search(r'Service:([^|]+)', line)
                 time_match = re.search(r'Time:([^|]+)', line)
-                
+                action_match = re.search(r'Action:([^|]+)', line)
+
+                action = action_match.group(1).strip().lower() if action_match else ""
+                if action != "start":
+                    continue
+
                 if service_match and time_match:
                     service_name = service_match.group(1)
                     time_str = time_match.group(1)
-                    
+
                     try:
                         dt = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
                         events.append({
@@ -239,6 +244,24 @@ def normalize_timestamps(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return normalized
 
 
+def dedupe_events(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Drop duplicate events by timestamp, event_type, source, and details."""
+    seen = set()
+    deduped = []
+    for event in events:
+        key = (
+            event.get('timestamp_utc', ''),
+            event.get('event_type', ''),
+            event.get('source', ''),
+            event.get('details', ''),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(event)
+    return deduped
+
+
 def correlate_timeline(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Correlate all events into a single chronological timeline."""
     # Sort by timestamp_utc
@@ -297,8 +320,11 @@ def main():
     # Normalize timestamps to UTC
     normalized_events = normalize_timestamps(all_events)
     
+    # Drop duplicate events before correlating the timeline
+    deduped_events = dedupe_events(normalized_events)
+
     # Correlate into chronological timeline
-    timeline = correlate_timeline(normalized_events)
+    timeline = correlate_timeline(deduped_events)
     
     # Detect anomalies
     anomalous = detect_anomalies(timeline)

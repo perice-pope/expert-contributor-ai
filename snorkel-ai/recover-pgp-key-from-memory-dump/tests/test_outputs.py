@@ -16,6 +16,45 @@ def test_decrypted_file_not_empty():
     assert len(content.strip()) > 0, "Decrypted file is empty"
 
 
+def test_recovered_key_file_exists():
+    """Verify the reconstructed key file was created."""
+    key_path = Path("/output/recovered_key.asc")
+    assert key_path.exists(), f"Recovered key file {key_path} does not exist"
+    assert key_path.is_file(), f"{key_path} exists but is not a file"
+
+
+def test_recovered_key_file_format():
+    """Verify the recovered key file contains a single PGP private key block."""
+    key_path = Path("/output/recovered_key.asc")
+    content = key_path.read_text(encoding="utf-8")
+
+    assert "-----BEGIN PGP PRIVATE KEY BLOCK-----" in content, (
+        "Recovered key is missing BEGIN PGP PRIVATE KEY BLOCK header"
+    )
+    assert "-----END PGP PRIVATE KEY BLOCK-----" in content, (
+        "Recovered key is missing END PGP PRIVATE KEY BLOCK footer"
+    )
+
+    assert content.count("-----BEGIN PGP PRIVATE KEY BLOCK-----") == 1, (
+        "Recovered key should contain exactly one BEGIN block"
+    )
+    assert content.count("-----END PGP PRIVATE KEY BLOCK-----") == 1, (
+        "Recovered key should contain exactly one END block"
+    )
+
+
+def test_recovered_key_no_noise_lines():
+    """Verify the recovered key file removes noise lines from the dump."""
+    key_path = Path("/output/recovered_key.asc")
+    content = key_path.read_text(encoding="utf-8")
+
+    noise_markers = ("NOISE_", "GARBAGE_", "MID_NOISE")
+    for line in content.splitlines():
+        assert not any(marker in line for marker in noise_markers), (
+            f"Noise marker found in recovered key: {line}"
+        )
+
+
 def test_decrypted_content_matches_expected():
     """Verify the decrypted plaintext matches the expected secret message."""
     decrypted_path = Path("/output/decrypted.txt")

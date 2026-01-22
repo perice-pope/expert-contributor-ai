@@ -4,3 +4,6 @@ C:\Users\Admin\Documents\suspicious.exe|2024-01-15 14:32:00 EST
 C:\Windows\System32\svchost.exe|2024-01-15 14:35:20 EST
 C:\Program Files\Common Files\service.dll|2024-01-15 14:40:15 EST
 
+C:\Windows\System32\notepad.exe|2024-01-15 14:30:25 EST
+C:\Windows\System32\notepad.exe|2024-01-15 14:30:25 EST
+MALFORMED_MFT_RECORD_WITHOUT_DELIMITER

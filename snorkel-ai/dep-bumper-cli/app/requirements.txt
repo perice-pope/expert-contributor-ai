@@ -1,7 +1,6 @@
 # Core dependencies
-requests==2.31.0  # core http client
-flask>=3.0.0
-uvicorn[standard]~=0.23.0; python_version >= "3.11"
+requests==2.31.0
+flask==3.0.0
 
 # Development dependencies
 pytest==7.4.0

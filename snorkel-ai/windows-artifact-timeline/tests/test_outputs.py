@@ -92,6 +92,21 @@ def test_all_event_types_present():
     assert expected_types.issubset(event_types), f"Missing event types. Expected {expected_types}, got {event_types}"
 
 
+def test_event_types_are_expected_only():
+    """Verify no unexpected event types appear in the timeline."""
+    timeline_path = Path("/output/timeline.csv")
+
+    expected_types = {'file_creation', 'process_execution', 'service_start', 'registry_modification'}
+    with open(timeline_path, 'r') as f:
+        reader = csv.reader(f)
+        next(reader)  # Skip header
+        for row in reader:
+            if len(row) > 1:
+                assert row[1] in expected_types, (
+                    f"Unexpected event type found: {row[1]}"
+                )
+
+
 def test_all_sources_present():
     """Verify all expected sources (MFT, EVTX, Prefetch) are present."""
     timeline_path = Path("/output/timeline.csv")
@@ -107,6 +122,22 @@ def test_all_sources_present():
     
     expected_sources = {'MFT', 'EVTX', 'Prefetch'}
     assert expected_sources.issubset(sources), f"Missing sources. Expected {expected_sources}, got {sources}"
+
+
+def test_no_duplicate_events():
+    """Verify the timeline does not include duplicate events."""
+    timeline_path = Path("/output/timeline.csv")
+
+    seen = set()
+    with open(timeline_path, 'r') as f:
+        reader = csv.reader(f)
+        next(reader)  # Skip header
+        for row in reader:
+            if len(row) < 4:
+                continue
+            key = (row[0], row[1], row[2], row[3])
+            assert key not in seen, f"Duplicate event found: {key}"
+            seen.add(key)
 
 
 def test_json_summary_exists():

@@ -19,6 +19,7 @@ A legacy Flask authentication service currently stores unsalted SHA-1 password h
    - If validation fails (wrong password), skip the user and record in audit log
    - Continue processing all rows even if some fail
    - The migration must run when executing `python3 /app/migrate.py` with no extra arguments
+   - The provided CSV contains valid credentials for at least four users (alice, bob, charlie, diana); those users must be migrated when the script runs
 
 3. **Generate audit report**: After migration completes, write `/app/audit.json` containing:
    - `migrated_count`: Number of users successfully migrated

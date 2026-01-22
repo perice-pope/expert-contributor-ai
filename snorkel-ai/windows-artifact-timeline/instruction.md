@@ -4,11 +4,14 @@ You've been given a set of Windows forensic artifacts from an incident investiga
 
 ## Requirements
 
-1. **Parse MFT Records**: Extract file creation timestamps from the MFT records file (`/app/data/mft_records.txt`). Each line contains a file path and a timestamp in local Windows time format.
-2. **Parse EVTX Events**: Extract process execution and service start events from the EVTX log file (`/app/data/events.evtx.txt`). Timestamps are in Windows event log format.
-3. **Parse Prefetch Files**: Extract process execution timestamps from the Prefetch artifacts file (`/app/data/prefetch.txt`). Timestamps are in Unix epoch format.
+1. **Parse MFT Records**: Extract file creation timestamps from the MFT records file (`/app/data/mft_records.txt`). Each line contains a file path and a timestamp in local Windows time format. Use `event_type` = `file_creation` and `source` = `MFT`.
+2. **Parse EVTX Events**: Extract process execution, service start, and registry modification events from the EVTX log file (`/app/data/events.evtx.txt`). Timestamps are in Windows event log format.
+   - `EventID:4688` → `event_type` = `process_execution`, `source` = `EVTX`
+   - `EventID:7045` with `Action:start` → `event_type` = `service_start`, `source` = `EVTX` (ignore non-start actions)
+   - `EventID:4657` → `event_type` = `registry_modification`, `source` = `EVTX`
+3. **Parse Prefetch Files**: Extract process execution timestamps from the Prefetch artifacts file (`/app/data/prefetch.txt`). Timestamps are in Unix epoch format. Use `event_type` = `process_execution` and `source` = `Prefetch`.
 4. **Normalize Timestamps**: Convert all timestamps to UTC and ensure consistent formatting (ISO 8601: `YYYY-MM-DDTHH:MM:SSZ`).
-5. **Correlate Events**: Merge all events into a single chronological timeline sorted by timestamp.
+5. **Correlate Events**: Merge all events into a single chronological timeline sorted by timestamp. Deduplicate events with identical `timestamp`, `event_type`, `source`, and `details` (keep the first occurrence).
 6. **Anomaly Detection**: Flag and annotate the following suspicious events:
    - **Unsigned binary executions**: EVTX `EventID:4688` process events where the field `Signed:false` appears. These must use the exact anomaly type string `Unsigned binary execution`.
    - **Registry Run key modifications**: EVTX `EventID:4657` registry events where the `Key:` path contains `\Run` or `\RunOnce` (case-insensitive). These must use the exact anomaly type string `Registry Run key modification` and the event type `registry_modification`.
@@ -19,6 +22,7 @@ You've been given a set of Windows forensic artifacts from an incident investiga
 
 - **No external network calls**. All processing must be done offline.
 - **Do not modify the input data files**. Read them as-is.
+- **Ignore malformed lines** and unknown EVTX EventIDs that do not match the expected formats.
 - **Handle timezone conversion correctly**. Windows local time must be converted to UTC (assume EST/EDT timezone for Windows timestamps).
 - **All timestamps must be in UTC** in the output, regardless of source format.
 - **The CSV must have a header row** and use comma delimiters.

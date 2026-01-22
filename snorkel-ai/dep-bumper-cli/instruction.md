@@ -6,18 +6,19 @@ A Python project needs a CLI tool to manage dependency updates across both npm (
 
 1. **Read dependency files**: The CLI at `/app/dep_bumper.py` must:
    - Parse `/app/package.json` to extract npm dependencies (both `dependencies` and `devDependencies`)
-   - Parse `/app/requirements.txt` to extract PyPI packages and their version constraints, including extras (`pkg[extra]`), inline comments, and environment markers (`; python_version >= "3.11"`)
+   - Parse `/app/requirements.txt` to extract PyPI packages and their version constraints
    - Handle both files even if only one exists (graceful degradation)
 
 2. **Detect outdated packages**: For each package, determine if updates are available:
    - For npm packages: Use `npm outdated --json` to get current, wanted, and latest versions
-   - For PyPI packages: Use `pip list --outdated --format=json` to check latest available version
+   - For PyPI packages: Use `pip index versions <package>` or equivalent to check latest available version
    - Compare current version constraints against latest available versions
    - Identify packages that can be updated (respecting semver constraints in requirements.txt)
 
 3. **Interactive selection**: Present a numbered list of outdated packages and allow user selection:
    - Display format: `[index] package-name: current-version -> latest-version (ecosystem)`
-   - List npm packages first and PyPI packages second, each sorted alphabetically by package name for deterministic ordering
+   - If a requirement includes extras (e.g., `uvicorn[standard]`), include the extras in the display name
+   - Use the raw `current` and `latest` version values as reported by the package managers (no added prefixes like `^` or `~` in the list)
    - Allow multiple selections (comma-separated indices or ranges like `1,3,5-7`)
    - Allow "all" to select all packages
    - Allow "skip" or empty input to proceed without updates
@@ -25,8 +26,8 @@ A Python project needs a CLI tool to manage dependency updates across both npm (
 
 4. **Apply version bumps**: Update the dependency files with selected versions:
    - For npm: Update `package.json` with exact versions (e.g., `"package": "^1.2.3"` -> `"package": "^2.0.0"`)
-   - For PyPI: Update `requirements.txt` with exact versions or compatible constraints (e.g., `package==1.2.3` -> `package==2.0.0`, `package>=1.2.3` -> `package>=2.0.0`)
-   - Preserve comments, environment markers, extras, and line ordering in requirements.txt where possible
+   - For PyPI: Update `requirements.txt` with exact versions or compatible constraints (e.g., `package==1.2.3` -> `package==2.0.0` or `package>=2.0.0,<3.0.0`)
+   - Preserve comments and formatting in requirements.txt where possible
    - Write updated files back to disk
 
 5. **Regenerate lockfiles**: After updating dependency files, regenerate lockfiles:
@@ -37,6 +38,8 @@ A Python project needs a CLI tool to manage dependency updates across both npm (
 6. **Output conventional commit summary**: After all updates, write `/app/commit-summary.txt` containing:
    - A conventional commit message format: `chore(deps): bump <ecosystem> dependencies`
    - List of updated packages in the format: `- <package-name>: <old-version> -> <new-version>`
+   - Use the same display name as the interactive list (including extras for PyPI packages)
+   - Use the raw `current` and `latest` version values (no added prefixes) in summary lines
    - Separate sections for npm and PyPI updates
    - Example format:
      ```
@@ -57,7 +60,7 @@ A Python project needs a CLI tool to manage dependency updates across both npm (
 - **Preserve formatting**: Maintain existing formatting and comments in `requirements.txt` where possible
 - **Semver constraints**: Respect version constraints in `requirements.txt` (e.g., `>=`, `<=`, `~=`, `==`)
 - **Interactive mode only**: The CLI must run interactively (read from stdin, write to stdout/stderr)
-- **No external network calls for version detection**: Use `npm outdated` and `pip list --outdated` which work offline with cached metadata
+- **No external network calls for version detection**: Use `npm outdated` and `pip index versions` which work offline with cached metadata
 - **Error handling**: If a package update fails (e.g., incompatible versions), log the error and continue with other packages
 - **Idempotent lockfile regeneration**: Running the tool multiple times should not cause issues
 - **Python 3.11+** required
@@ -83,7 +86,8 @@ A Python project needs a CLI tool to manage dependency updates across both npm (
 ## Technical Notes
 
 - `npm outdated --json` returns JSON with package names as keys and objects containing `current`, `wanted`, `latest` versions
-- `pip list --outdated --format=json` returns JSON with `name`, `version`, and `latest_version` fields
+- `pip index versions <package>` outputs available versions (may need parsing)
+- For PyPI, consider using `pip list --outdated --format=json` as an alternative
 - `pip-compile` requires `pip-tools` package: `pip install pip-tools`
 - Conventional commit format: `<type>(<scope>): <description>` where type is `chore`, scope is `deps`
 - The CLI should be executable: `python /app/dep_bumper.py` or `chmod +x /app/dep_bumper.py` with shebang

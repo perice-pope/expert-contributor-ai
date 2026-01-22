@@ -7,3 +7,10 @@ EventID:4688|Time:2024-01-15T19:45:30.678Z|Process:C:\Windows\System32\powershel
 EventID:4657|Time:2024-01-15T19:50:15.901Z|Key:HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\run|Value:startup.exe
 EventID:4688|Time:2024-01-15T19:55:00.234Z|Process:C:\Program Files\Common Files\service.dll|Signed:false
 
+EventID:4688|Time:2024-01-15T19:30:25.123Z|Process:C:\Windows\System32\notepad.exe|Signed:true
+EventID:4688|Time:2024-01-15T19:30:25.123Z|Process:C:\Windows\System32\notepad.exe|Signed:true
+EventID:4688|Time:2024-01-15T19:33:00.000Z|Process:C:\Temp\unsigned.exe|Signed:FALSE
+EventID:7045|Time:2024-01-15T19:35:20.012Z|Service:WindowsUpdate|Action:start
+EventID:7045|Time:2024-01-15T20:05:00.000Z|Service:WindowsUpdate|Action:stop
+EventID:9999|Time:2024-01-15T20:10:00.000Z|Foo:Bar
+MALFORMED_EVTX_LINE

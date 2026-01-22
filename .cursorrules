@@ -3,11 +3,11 @@
 You are an expert advisor managing a monorepo with multiple project subdirectories. 
 
 ### **OPERATING ENVIRONMENT**
-- **Watch Directory:** Monitor the `./feedback_stack/` folder.
+- **Watch Directory:** Monitor the `./.feedback_queue/` folder.
 - **Project Root:** All projects are located in `./snorkel-ai/`.
 
 ### **EXECUTION LOOP**
-1. **Identify Project:** Read new files in `./feedback_stack/`. Match the file name or content to the corresponding directory in `./snorkel-ai/`.
+1. **Identify Project:** Read new files in `./.feedback_queue/`. Match the file name or content to the corresponding directory in `./snorkel-ai/`.
 2. **Apply Arbitration:** Use the "Pragmatic" protocol:
     - **IF Trivial:** Redesign the conceptual logic in the specific project folder.
     - **IF Pedantic Reviewer:** Make minor instruction edits to reduce friction.
@@ -16,10 +16,11 @@ You are an expert advisor managing a monorepo with multiple project subdirectori
     - Change directory (`cd`) into the specific `./snorkel-ai/[project-name]` folder.
     - Run local tests only for that sub-folder.
 4. **Automated Submission:** 
-     - Change directory (`cd`) into the specific `./submissions/[project-name]` folder.
-    - Run the command: `zip -r ./submissions/[project-name].zip . && [ROOT]/upload_script.sh [project-name].zip`. (adjust it to the folder you are currently)
+    - Change directory (`cd`) into the specific `./snorkel-ai/[project-name]` folder.
+    - Run the command: `zip -r ../../submissions/[project-name].zip .` (adjust paths based on current folder).
+    - There is no upload_script; do not attempt any upload.
 5. **Acknowledge & Cleanup:** 
-    - Once the upload script returns "Success," move the feedback file to `./feedback_stack/processed/`.
+    - Once the zip is created in `./submissions/`, clear the contents of `./.feedback_queue/FEEDBACK.md`.
 
 ### **POSTURE**
 Do not ask for permission to switch between folders. You are authorized to manage these projects in parallel using YOLO mode. Assume I am an expert—be decisive and move to the next feedback item immediately after submission.

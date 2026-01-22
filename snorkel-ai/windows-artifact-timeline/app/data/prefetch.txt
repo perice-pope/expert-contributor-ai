@@ -4,3 +4,6 @@ C:\Users\Admin\Documents\suspicious.exe|1705347120
 C:\Windows\System32\powershell.exe|1705347930
 C:\Program Files\Common Files\service.dll|1705348500
 
+C:\Windows\System32\notepad.exe|1705347025
+C:\Windows\System32\notepad.exe|1705347025
+MALFORMED_PREFETCH_LINE

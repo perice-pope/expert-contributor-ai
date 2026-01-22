@@ -18,6 +18,15 @@ def test_png_images_were_carved():
     assert len(png_files) > 0, "No PNG images were carved from the memory dump"
 
 
+def test_minimum_png_images_carved():
+    """Verify the memory dump contains decoy images (minimum image count)."""
+    images_dir = Path("/app/images")
+    png_files = list(images_dir.glob("image_*.png"))
+    assert len(png_files) >= 5, (
+        f"Expected at least 5 carved PNGs (real + decoys), found {len(png_files)}"
+    )
+
+
 def test_carved_images_are_valid_pngs():
     """Verify that all carved images are valid PNG files."""
     images_dir = Path("/app/images")
@@ -139,6 +148,21 @@ def test_flags_are_ascii_text():
             assert all(32 <= ord(c) <= 126 for c in flag_text), (
                 f"Flag contains non-ASCII or non-printable characters: {flag_text[:50]}"
             )
+
+
+def test_flags_match_expected_format():
+    """Verify extracted flags match the expected FLAG{...} pattern."""
+    flags_path = Path("/app/flags.txt")
+    content = flags_path.read_text(encoding="utf-8")
+    pattern = re.compile(r'^FLAG\\{[A-Za-z0-9_]+\\}$')
+
+    for line in content.strip().split('\\n'):
+        if ':' not in line:
+            continue
+        flag_text = line.split(':', 1)[1].strip()
+        assert pattern.match(flag_text), (
+            f"Flag does not match expected format FLAG{{...}}: {flag_text}"
+        )
 
 
 def test_images_match_expected_count():
