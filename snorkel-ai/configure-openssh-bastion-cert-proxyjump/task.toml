@@ -8,9 +8,11 @@ category = "security"
 tags = ["ssh", "certificates", "proxyjump", "linux", "networking"]
 expert_time_estimate_min = 60
 junior_time_estimate_min = 120
+is_multi_container = false
+custom_docker_compose = true
 
 [verifier]
-timeout_sec = 900.0
+timeout_sec = 300.0
 
 [agent]
 timeout_sec = 1200.0
