@@ -16,6 +16,3 @@ else
   echo 0 > /logs/verifier/reward.txt
 fi
 
-exit $status
-
-
