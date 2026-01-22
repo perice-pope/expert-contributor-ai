@@ -221,3 +221,103 @@ async def test():
     finally:
         if test_file.exists():
             test_file.unlink()
+
+
+def test_no_false_positive_in_to_thread():
+    """Blocking calls inside asyncio.to_thread callbacks should NOT be flagged."""
+    test_file = Path("/tmp/test_to_thread.py")
+    test_file.write_text("""
+import asyncio
+import time
+
+async def ok():
+    await asyncio.to_thread(lambda: time.sleep(1))
+""")
+    
+    try:
+        env = os.environ.copy()
+        env["PYTHONPATH"] = "/app:" + env.get("PYTHONPATH", "")
+        result = subprocess.run(
+            ["python3", "-m", "pylint", "--load-plugins=async_io_checker", str(test_file)],
+            cwd="/app",
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        output = result.stdout + result.stderr
+        blocking_messages = [line for line in output.split('\n') if 'blocking-io-in-async' in line]
+        assert len(blocking_messages) == 0, (
+            f"Blocking calls in to_thread should NOT be flagged. Found: {blocking_messages}"
+        )
+    finally:
+        if test_file.exists():
+            test_file.unlink()
+
+
+def test_detects_aliased_imports():
+    """Plugin should detect blocking calls even with import aliases."""
+    test_file = Path("/tmp/test_alias.py")
+    test_file.write_text("""
+import requests as r
+
+async def bad():
+    r.get("https://example.com")
+""")
+    
+    try:
+        env = os.environ.copy()
+        env["PYTHONPATH"] = "/app:" + env.get("PYTHONPATH", "")
+        result = subprocess.run(
+            ["python3", "-m", "pylint", "--load-plugins=async_io_checker", str(test_file)],
+            cwd="/app",
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        output = result.stdout + result.stderr
+        assert "blocking-io-in-async" in output, (
+            f"Plugin should detect r.get() as requests.get (aliased import). Output: {output}"
+        )
+    finally:
+        if test_file.exists():
+            test_file.unlink()
+
+
+def test_flags_in_aenter():
+    """Plugin should flag blocking calls in async context manager __aenter__."""
+    test_file = Path("/tmp/test_aenter.py")
+    test_file.write_text("""
+import time
+
+class AsyncCM:
+    async def __aenter__(self):
+        time.sleep(1)
+        return self
+    
+    async def __aexit__(self, *args):
+        pass
+""")
+    
+    try:
+        env = os.environ.copy()
+        env["PYTHONPATH"] = "/app:" + env.get("PYTHONPATH", "")
+        result = subprocess.run(
+            ["python3", "-m", "pylint", "--load-plugins=async_io_checker", str(test_file)],
+            cwd="/app",
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        output = result.stdout + result.stderr
+        assert "blocking-io-in-async" in output, (
+            f"Plugin should detect blocking in __aenter__. Output: {output}"
+        )
+    finally:
+        if test_file.exists():
+            test_file.unlink()

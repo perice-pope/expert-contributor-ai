@@ -10,10 +10,10 @@ You've been given a set of Windows forensic artifacts from an incident investiga
 4. **Normalize Timestamps**: Convert all timestamps to UTC and ensure consistent formatting (ISO 8601: `YYYY-MM-DDTHH:MM:SSZ`).
 5. **Correlate Events**: Merge all events into a single chronological timeline sorted by timestamp.
 6. **Anomaly Detection**: Flag and annotate the following suspicious events:
-   - Unsigned binary executions (binaries without valid digital signatures)
-   - Registry Run key modifications (events indicating changes to autorun registry keys)
+   - **Unsigned binary executions**: EVTX `EventID:4688` process events where the field `Signed:false` appears. These must use the exact anomaly type string `Unsigned binary execution`.
+   - **Registry Run key modifications**: EVTX `EventID:4657` registry events where the `Key:` path contains `\Run` or `\RunOnce` (case-insensitive). These must use the exact anomaly type string `Registry Run key modification` and the event type `registry_modification`.
 7. **Output CSV Timeline**: Write the complete timeline to `/output/timeline.csv` with columns: `timestamp`, `event_type`, `source`, `details`, `anomaly_flag`, `anomaly_reason`.
-8. **Output JSON Summary**: Write a summary of suspicious events to `/output/suspicious_events.json` containing an array of objects with fields: `timestamp`, `event_type`, `source`, `details`, `anomaly_type`, `reason`.
+8. **Output JSON Summary**: Write a summary of suspicious events to `/output/suspicious_events.json` containing an array of objects with fields: `timestamp`, `event_type`, `source`, `details`, `anomaly_type`, `reason`. Ensure `anomaly_type` matches the exact strings above.
 
 ## Constraints
 

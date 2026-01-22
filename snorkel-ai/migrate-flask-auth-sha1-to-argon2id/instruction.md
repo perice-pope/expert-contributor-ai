@@ -13,21 +13,25 @@ A legacy Flask authentication service currently stores unsalted SHA-1 password h
 
 2. **Implement migration CLI**: Complete `/app/migrate.py` to bulk-migrate users from SHA-1 to Argon2id:
    - Read login attempts from `/app/login_attempts.csv` (format: `username,password`)
+   - Treat the first row as a header and skip it
    - For each row, validate the password against the current SHA-1 hash in `/app/users.json`
    - If validation succeeds, compute new Argon2id hash using current config parameters and update the user record
    - If validation fails (wrong password), skip the user and record in audit log
    - Continue processing all rows even if some fail
+   - The migration must run when executing `python3 /app/migrate.py` with no extra arguments
 
 3. **Generate audit report**: After migration completes, write `/app/audit.json` containing:
    - `migrated_count`: Number of users successfully migrated
    - `failed_count`: Number of users that could not be migrated
    - `failed_users`: Array of usernames that failed migration (due to incorrect passwords)
+   - Record at least the users that fail password verification in `failed_users`
 
 4. **Maintain service functionality**: The Flask service must continue to:
    - Accept POST requests to `/login` with JSON body `{"username": "...", "password": "..."}`
    - Return `200 OK` with `{"status": "success"}` on valid login
    - Return `401 Unauthorized` with `{"status": "error", "message": "Invalid credentials"}` on invalid login
    - Automatically rehash passwords when login succeeds but hash parameters are outdated
+   - Listen on port `5000` so the service is reachable at `http://localhost:5000`
 
 ## Constraints
 
@@ -38,6 +42,7 @@ A legacy Flask authentication service currently stores unsalted SHA-1 password h
 - **Configurable parameters**: Read `memory_cost`, `time_cost`, and `parallelism` from `/app/argon2_config.json`
 - **Rehash detection**: Compare stored hash parameters with current config; rehash if memory_cost or time_cost differ
 - **CLI must be idempotent**: Running migration multiple times should not duplicate entries in audit.json
+- **Port**: Do not change the Flask port (keep `5000`)
 - **No external network calls**: All operations must work offline
 - **Python 3.11+** with `argon2-cffi` library (already in requirements)
 

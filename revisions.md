@@ -53,46 +53,57 @@
 
 ## Active Revisions
 
-### [REVISION-010] - Fix Pylint Async IO Checker (NOP Passing & Oracle Crashing)
-- **Status**: `[✓]` Completed
+### [REVISION-010] - Pylint Async IO Checker (Difficulty Redesign with Reasoning Ambiguity)
+- **Status**: `[✓]` Completed (v2 - Difficulty Redesign)
 - **Priority**: Critical
 - **File Path**: `snorkel-ai/pylint-async-io-checker-submission.zip`
 - **Date Submitted**: 2025-12-31
-- **Completed**: 2025-12-31 20:43
+- **Completed**: 2025-12-31 21:33
 
 **Logs/Issues:**
 ```
 Issue 1: NOP agent unexpectedly passed tests (starter code was already complete)
 Issue 2: Oracle solution crashes with AttributeError: module 'astroid' has no attribute 'TryExcept'
-
-Stack trace from oracle:
-  File "/app/async_io_checker.py", line 112, in _check_node
-    elif isinstance(node, astroid.TryExcept):
-                          ^^^^^^^^^^^^^^^^^
-AttributeError: module 'astroid' has no attribute 'TryExcept'
+Issue 3: Task too trivial - frontier agents would score 100%
 ```
 
-**Revision Notes:**
-1. **Break starter code** (`app/async_io_checker.py`) - Introduce bugs so agents have work:
-   - Use deprecated `astroid.TryExcept` (crashes on astroid 3.0+)
-   - Remove proper handling of `Expr` and `Assign` nodes
-   - Remove `register()` function
-   - Remove proper `With` items handling
-2. **Fix oracle solution** (`solution/solve.sh`) - Make it correct:
-   - Use `astroid.Try` instead of `astroid.TryExcept`
-   - Include proper `Expr`, `Assign`, `With` handling
-   - Include `register()` function
-3. **Fix unit tests** in oracle to use subprocess instead of `linter.reporter.messages`
+**Difficulty Layers Implemented (Goal: frontier <80%):**
+
+1. **Thread-offload scope exemption** (hard, high impact)
+   - Do NOT flag blocking calls inside `asyncio.to_thread()` or `run_in_executor()` callbacks
+   - Requires tracking `in_offload_callback` context during AST traversal
+
+2. **Import alias resolution** (medium, high impact)
+   - Detect blocking calls even with aliases: `import requests as r` → `r.get()` should flag
+   - Requires building import map from `Import`/`ImportFrom` nodes
+
+3. **Async context manager methods** (small, medium impact)
+   - Flag blocking in `async def __aenter__`, `async def __aexit__`
+   - Reuses existing async function traversal
+
+**Starter Code Bugs (subtle, require understanding):**
+- Uses `astroid.TryExcept` (crashes on astroid 3.0+)
+- Missing `Expr` and `Assign` handling (misses `time.sleep(1)`, `response = requests.get(...)`)
+- Missing `With` items tuple unpacking (misses `with open(...)`)
+- Missing `register()` function (plugin won't load)
+- No import alias tracking
+- No thread-offload scope exemption
+
+**New Tests Added (3 edge cases):**
+- `test_no_false_positive_in_to_thread` - 0 messages expected in offload callback
+- `test_detects_aliased_imports` - >=1 message for aliased `r.get()`
+- `test_flags_in_aenter` - >=1 message in async context manager method
 
 **Expected Output:**
 - [x] Oracle passes (Mean: 1.000)
 - [x] NOP agent fails (Mean: 0.000)
-- [x] Revised zip created
+- [x] Revised zip created (15KB, 18 files)
 
 **AI Execution Log:**
 ```
-- Modified: app/async_io_checker.py (introduced bugs: TryExcept, removed Expr/Assign/With handling, removed register())
-- Modified: solution/solve.sh (fixed: astroid.Try, added all proper handlers, fixed unit tests to use subprocess)
+- Modified: app/async_io_checker.py (subtle bugs: TryExcept, no Expr/Assign, no alias map, no offload scope)
+- Modified: solution/solve.sh (complete implementation with all 3 difficulty layers)
+- Modified: tests/test_outputs.py (added 3 new edge case tests, total 13 tests)
 - Created: /revisions/pylint-async-io-checker-submission-revised.zip
 - Tests run: oracle Mean: 1.000 ✓, nop Mean: 0.000 ✓
 ```

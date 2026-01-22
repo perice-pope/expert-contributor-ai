@@ -6,7 +6,7 @@ A security incident response team has captured a memory dump from a compromised 
 
 1. **Extract key material**: Analyze the memory dump file (`/app/memory.dump`) to locate and extract the OpenPGP private key data (may be ASCII-armored or binary format).
 2. **Reconstruct the key**: Assemble the extracted fragments into a complete, valid OpenPGP private key file.
-3. **Import the key**: Import the reconstructed private key into the GPG keyring using `gpg --import`.
+3. **Import the key**: Import the reconstructed private key into the default GPG keyring using `gpg --import` and verify it is listed by `gpg --list-secret-keys`. Use the default GPG home (`/root/.gnupg`) so the keyring files are created there.
 4. **Decrypt ciphertext**: Use the imported key to decrypt the provided ciphertext file (`/app/ciphertext.asc`) and write the plaintext to `/output/decrypted.txt`.
 5. **Validate recovery**: The decrypted plaintext must match the expected secret message (tests will verify this).
 

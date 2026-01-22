@@ -33,6 +33,7 @@ A Bazel workspace contains a mixed C++/Java project but is not configured to use
      - `total_actions`: Total number of actions in the build
      - `cache_hit_actions`: Number of actions that hit the cache
      - `build_successful`: Boolean indicating if the second build succeeded
+   - Compute `cache_hit_percentage` as `(cache_hit_actions / total_actions) * 100` using the same totals you report
 
 ## Constraints
 
