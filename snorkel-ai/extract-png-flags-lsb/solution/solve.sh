@@ -20,6 +20,7 @@ python3 << 'PYTHON_EOF'
 import os
 from PIL import Image
 from io import BytesIO
+import re
 
 PNG_HEADER = b'\x89\x50\x4E\x47\x0D\x0A\x1A\x0A'
 PNG_FOOTER = b'\x49\x45\x4E\x44\xAE\x42\x60\x82'
@@ -51,6 +52,8 @@ def find_all_pngs(data):
         offset = png_end
     
     return images
+
+FLAG_PATTERN = re.compile(r"FLAG\{[A-Za-z0-9_]+\}")
 
 def extract_lsb_flag(image_data):
     """Extract ASCII flag from LSB steganography."""
@@ -87,8 +90,11 @@ def extract_lsb_flag(image_data):
                 break
         
         # Decode ASCII
-        flag = bytes(flag_bytes).decode('ascii', errors='ignore').rstrip('\x00')
-        return flag
+        decoded = bytes(flag_bytes).decode('ascii', errors='ignore').rstrip('\x00')
+        match = FLAG_PATTERN.search(decoded)
+        if match:
+            return match.group(0)
+        return None
     except Exception as e:
         print(f"Error extracting flag: {e}", file=os.sys.stderr)
         return None
