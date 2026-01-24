@@ -8,12 +8,14 @@ A Python project needs a CLI tool to manage dependency updates across both npm (
    - Parse `/app/package.json` to extract npm dependencies (both `dependencies` and `devDependencies`)
    - Parse `/app/requirements.txt` to extract PyPI packages and their version constraints
    - Handle both files even if only one exists (graceful degradation)
+   - Print `Reading dependency files` to stdout when starting this step
 
 2. **Detect outdated packages**: For each package, determine if updates are available:
    - For npm packages: Use `npm outdated --json` to get current, wanted, and latest versions
    - For PyPI packages: Use `pip index versions <package>` or equivalent to check latest available version
    - Compare current version constraints against latest available versions
    - Identify packages that can be updated (respecting semver constraints in requirements.txt)
+   - Print `Checking for outdated packages` before running version checks
 
 3. **Interactive selection**: Present a numbered list of outdated packages and allow user selection:
    - Display format: `[index] package-name: current-version -> latest-version (ecosystem)`
@@ -29,6 +31,7 @@ A Python project needs a CLI tool to manage dependency updates across both npm (
    - For PyPI: Update `requirements.txt` with exact versions or compatible constraints (e.g., `package==1.2.3` -> `package==2.0.0` or `package>=2.0.0,<3.0.0`)
    - Preserve comments and formatting in requirements.txt where possible
    - Write updated files back to disk
+   - Print `Updating dependency files` before modifying any files
 
 5. **Regenerate lockfiles**: After updating dependency files, regenerate lockfiles:
    - Run `npm install` (not `npm ci`) to update `package-lock.json` based on new `package.json`
@@ -40,7 +43,7 @@ A Python project needs a CLI tool to manage dependency updates across both npm (
    - List of updated packages in the format: `- <package-name>: <old-version> -> <new-version>`
    - Use the same display name as the interactive list (including extras for PyPI packages)
    - Use the raw `current` and `latest` version values (no added prefixes) in summary lines
-   - Separate sections for npm and PyPI updates
+   - Separate sections labeled exactly `npm:` and `pypi:` (lowercase)
    - Example format:
      ```
      chore(deps): bump npm and PyPI dependencies
@@ -52,6 +55,9 @@ A Python project needs a CLI tool to manage dependency updates across both npm (
      pypi:
      - requests: 2.31.0 -> 2.32.0
      - flask: 3.0.0 -> 3.0.1
+
+7. **Finalize output**:
+   - Print `Done!` after all steps complete (after writing `commit-summary.txt`)
      ```
 
 ## Constraints

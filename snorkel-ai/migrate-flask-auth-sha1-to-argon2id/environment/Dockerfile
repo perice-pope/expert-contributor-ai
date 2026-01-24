@@ -11,7 +11,8 @@ RUN apt-get update && \
 # argon2-cffi 23.1.0 for Argon2id password hashing
 RUN pip install --no-cache-dir \
     Flask==3.0.0 \
-    argon2-cffi==23.1.0
+    argon2-cffi==23.1.0 \
+    pandas==2.2.3
 
 # Set working directory
 WORKDIR /app

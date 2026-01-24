@@ -1,5 +1,7 @@
 #!/bin/bash
 
+mkdir -p /logs/verifier
+
 # Install curl
 apt-get update
 apt-get install -y curl
@@ -8,6 +10,8 @@ apt-get install -y curl
 curl -LsSf https://astral.sh/uv/0.9.5/install.sh | sh
 
 source $HOME/.local/bin/env
+
+TEST_DIR="${TEST_DIR:-/tests}"
 
 # Check if we're in a valid working directory
 if [ "$PWD" = "/" ]; then
@@ -22,7 +26,7 @@ uvx \
   -w pytest-json-ctrf==0.3.5 \
   -w requests==2.31.0 \
   -w argon2-cffi==23.1.0 \
-  pytest --ctrf /logs/verifier/ctrf.json /tests/test_outputs.py -rA
+  pytest --ctrf /logs/verifier/ctrf.json "$TEST_DIR/test_outputs.py" -rA
 
 if [ $? -eq 0 ]; then
   echo 1 > /logs/verifier/reward.txt

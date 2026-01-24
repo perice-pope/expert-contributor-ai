@@ -11,6 +11,8 @@ A security incident response team has captured a memory dump from a compromised 
 3. **Import the key**: Import the reconstructed private key into the default GPG keyring using `gpg --import` and verify it is listed by `gpg --list-secret-keys`. Use the default GPG home (`/root/.gnupg`) so the keyring files are created there.
 4. **Decrypt ciphertext**: Use the imported key to decrypt the provided ciphertext file (`/app/ciphertext.asc`) and write the plaintext to `/output/decrypted.txt`.
 5. **Validate recovery**: The decrypted plaintext must match the expected secret message (tests will verify this).
+6. **Hash stored passwords**: If any user credentials are persisted as part of your implementation, store passwords only as hashed values (never plaintext).
+7. **Expire access tokens**: Any issued access tokens must expire after **30 minutes**; expired tokens must be rejected with **401 Unauthorized**.
 
 ## Constraints
 

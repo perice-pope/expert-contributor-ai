@@ -10,15 +10,13 @@ rm -rf /var/lib/apt/lists/*
 curl -LsSf https://astral.sh/uv/0.7.13/install.sh | sh
 source "$HOME/.local/bin/env"
 
-TEST_DIR="${TEST_DIR:-/tests}"
-
 uv venv .tbench-testing
 source .tbench-testing/bin/activate
 
-uv pip install pytest==8.3.3
+uv pip install pytest==8.0.0
 
 set +e
-uv run pytest "$TEST_DIR/test_outputs.py" -rA -v
+uv run pytest /tests/test_outputs.py -rA
 status=$?
 if [ $status -eq 0 ]; then
   echo 1 > /logs/verifier/reward.txt

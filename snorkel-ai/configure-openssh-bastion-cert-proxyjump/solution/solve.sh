@@ -15,6 +15,7 @@ HostKey $ROOT/bastion/ssh_host_ed25519_key
 PasswordAuthentication no
 PubkeyAuthentication yes
 TrustedUserCAKeys $ROOT/ca/user_ca.pub
+AuthorizedPrincipalsFile $ROOT/bastion/authorized_principals
 AuthorizedKeysFile none
 AllowUsers appuser
 UsePAM no
@@ -24,6 +25,8 @@ GatewayPorts no
 ClientAliveInterval 60
 Subsystem sftp /usr/lib/openssh/sftp-server
 CONF
+
+echo "appuser" > "$ROOT/bastion/authorized_principals"
 
 cat <<CONF > "$ROOT/apphost/sshd_config"
 Port 2223

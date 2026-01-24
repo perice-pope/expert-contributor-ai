@@ -101,6 +101,10 @@ def parse_evtx_events(evtx_file: Path) -> List[Dict[str, Any]]:
                     # Service start event
                     service_match = re.search(r'Service:([^|]+)', line)
                     time_match = re.search(r'Time:([^|]+)', line)
+                    action_match = re.search(r'Action:([^|]+)', line)
+                    
+                    if not action_match or action_match.group(1).strip().lower() != 'start':
+                        continue
                     
                     if service_match and time_match:
                         service_name = service_match.group(1)
@@ -321,4 +325,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

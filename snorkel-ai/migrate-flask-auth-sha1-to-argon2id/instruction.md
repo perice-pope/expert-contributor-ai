@@ -14,6 +14,8 @@ A legacy Flask authentication service currently stores unsalted SHA-1 password h
 2. **Implement migration CLI**: Complete `/app/migrate.py` to bulk-migrate users from SHA-1 to Argon2id:
    - Read login attempts from `/app/login_attempts.csv` (format: `username,password`)
    - Treat the first row as a header and skip it
+   - CSV rows are plain, comma-separated `username,password` values with no quoting; assume passwords do not contain commas
+   - Strip surrounding whitespace in usernames/passwords and skip empty rows
    - For each row, validate the password against the current SHA-1 hash in `/app/users.json`
    - If validation succeeds, compute new Argon2id hash using current config parameters and update the user record
    - If validation fails (wrong password), skip the user and record in audit log
@@ -41,6 +43,7 @@ A legacy Flask authentication service currently stores unsalted SHA-1 password h
 - **Use Argon2id** (not Argon2i or Argon2d) - this is the recommended variant for password hashing
 - **Per-user salts**: Each user must have a unique random salt (not shared across users)
 - **Configurable parameters**: Read `memory_cost`, `time_cost`, and `parallelism` from `/app/argon2_config.json`
+- **Current Argon2 config values**: `memory_cost=65536`, `time_cost=3`, `parallelism=4` (use these exact values from the file)
 - **Rehash detection**: Compare stored hash parameters with current config; rehash if memory_cost or time_cost differ
 - **CLI must be idempotent**: Running migration multiple times should not duplicate entries in audit.json
 - **Port**: Do not change the Flask port (keep `5000`)
@@ -60,6 +63,7 @@ A legacy Flask authentication service currently stores unsalted SHA-1 password h
 
 - Updated `/app/users.json` (all migratable users converted to Argon2id hashes)
 - `/app/audit.json` (JSON file with migration statistics and failed usernames)
+- `/app/output.json` (JSON file with schema `{ "player": <string>, "win_rate": <float> }`)
 
 ## Technical Notes
 

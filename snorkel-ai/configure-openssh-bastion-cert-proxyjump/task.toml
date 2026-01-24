@@ -8,7 +8,7 @@ category = "security"
 tags = ["ssh", "certificates", "proxyjump", "linux", "networking"]
 expert_time_estimate_min = 60
 junior_time_estimate_min = 120
-is_multi_container = false
+is_multi_container = true
 custom_docker_compose = true
 
 [verifier]
