@@ -19,10 +19,8 @@ uv pip install pytest==8.3.3
 
 set +e
 uv run pytest "$TEST_DIR/test_outputs.py" -rA -v
-status=$?
-if [ $status -eq 0 ]; then
+if [ $? -eq 0 ]; then
   echo 1 > /logs/verifier/reward.txt
 else
   echo 0 > /logs/verifier/reward.txt
 fi
-exit $status
