@@ -1,7 +1,7 @@
 services:
   main:
     build:
-      context: ${CONTEXT_DIR}/..
+      context: ${CONTEXT_DIR}
       dockerfile: ${CONTEXT_DIR}/Dockerfile
     image: ${MAIN_IMAGE_NAME}
     command: [ "sh", "-c", "sleep infinity" ]
