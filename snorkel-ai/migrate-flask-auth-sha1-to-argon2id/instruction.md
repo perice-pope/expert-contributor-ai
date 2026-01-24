@@ -63,7 +63,6 @@ A legacy Flask authentication service currently stores unsalted SHA-1 password h
 
 - Updated `/app/users.json` (all migratable users converted to Argon2id hashes)
 - `/app/audit.json` (JSON file with migration statistics and failed usernames)
-- `/app/output.json` (JSON file with schema `{ "player": <string>, "win_rate": <float> }`)
 
 ## Technical Notes
 

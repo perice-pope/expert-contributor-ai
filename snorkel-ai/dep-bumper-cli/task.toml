@@ -6,8 +6,6 @@ author_email = "anonymous"
 difficulty = "hard"
 category = "software-engineering"
 tags = ["cli", "dependencies", "npm", "pypi", "package-management", "interactive", "conventional-commits"]
-is_multi_container = true
-custom_docker_compose = true
 expert_time_estimate_min = 120
 junior_time_estimate_min = 240
 

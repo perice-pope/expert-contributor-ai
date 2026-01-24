@@ -1,6 +1,5 @@
-# CANARY_STRING_PLACEHOLDER
-
 #!/bin/bash
+# CANARY_STRING_PLACEHOLDER
 set -euo pipefail
 
 # Fix the broken dep_bumper.py implementation

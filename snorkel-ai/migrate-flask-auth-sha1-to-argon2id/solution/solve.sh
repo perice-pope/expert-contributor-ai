@@ -1,6 +1,5 @@
-# CANARY_STRING_PLACEHOLDER
-
 #!/bin/bash
+# CANARY_STRING_PLACEHOLDER
 set -euo pipefail
 
 # Solution: Migrate Flask Auth Service from SHA-1 to Argon2id
