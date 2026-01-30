@@ -7,7 +7,12 @@ You have a prewired mini-lab with two sshd instances (a bastion on port 2222 and
 2. Configure the app sshd (`/app/apphost/sshd_config`) to present the provided host certificate and to trust the same user CA via `AuthorizedPrincipalsFile` so `appuser` can log in on port 2223.
 3. Update the client config (`/app/client/ssh_config`) to ProxyJump through the bastion, use the provided client key + certificate, keep `StrictHostKeyChecking yes`, and set `UserKnownHostsFile` to `/app/client/known_hosts` (this ensures only that file is used for host verification). The SSH client configuration must explicitly set `CertificateFile` to the correct client certificate (`/app/client/id_client-cert.pub`). The config includes connection multiplexing directives that may need adjustment for ProxyJump.
 4. Ensure `/app/client/known_hosts` is hashed and contains appropriate entries for host verification. The app host uses a host certificate, and the bastion host key must be trusted. Hashed known_hosts entries use OpenSSH's `|1|` hashing format (for example, produced by `ssh-keyscan ... >> known_hosts` then `ssh-keygen -H -f known_hosts`). Include a `@cert-authority` entry for the app host and a hashed host-key entry for the bastion (port 2222). The bastion may also present a host certificate, which affects the format of entries needed.
-5. Show that `ssh -F /app/client/ssh_config app-via-bastion -- echo ok` succeeds without prompts, while attempts using the expired cert or wrong principal cert fail (non-zero).
+5. **Validate certificate authentication works correctly**:
+   - **Success case**: `ssh -F /app/client/ssh_config app-via-bastion -- echo ok` must succeed without prompts using the valid certificate (`/app/client/id_client-cert.pub`).
+   - **Expired certificate rejection**: Attempts using `/app/client/id_client-expired-cert.pub` must **fail with a non-zero exit code**. The sshd must reject expired certificates.
+   - **Wrong principal rejection**: Attempts using `/app/client/id_client-wrong-principal-cert.pub` must **fail with a non-zero exit code**. The sshd must reject certificates whose principals do not include `appuser`.
+
+   These rejection behaviors are enforced by proper `TrustedUserCAKeys` and `AuthorizedPrincipalsFile` configuration on the sshd side. OpenSSH automatically validates certificate expiration and principals when these are configured correctly.
 
 ## Constraints
 - Do not regenerate or replace any keys/certs under `/app/ca`, `/app/client`, or `/app/apphost`; configure with what is provided.

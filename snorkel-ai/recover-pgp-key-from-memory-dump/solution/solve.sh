@@ -9,7 +9,7 @@ echo "[oracle] Step 1: Extracting OpenPGP private key from memory dump..."
 echo "[oracle] Parsing dump for candidate key blocks (with noise cleanup)..."
 
 # Extract all key-like blocks, clean noise lines, choose the longest cleaned block.
-python3 - <<'PY' > /tmp/key_candidates.txt
+python3 - <<'PY'
 from pathlib import Path
 import re
 
@@ -47,11 +47,11 @@ if not cleaned_blocks:
 cleaned_blocks.sort(key=len, reverse=True)
 best = cleaned_blocks[0]
 Path("/tmp/clean_key.asc").write_text("\n".join(best) + "\n", encoding="utf-8")
-print("/tmp/clean_key.asc")
+print(f"Extracted key with {len(best)} lines to /tmp/clean_key.asc")
 PY
 
-KEY_FILE=$(head -n 1 /tmp/key_candidates.txt || true)
-if [ -z "$KEY_FILE" ] || [ ! -f "$KEY_FILE" ]; then
+KEY_FILE="/tmp/clean_key.asc"
+if [ ! -f "$KEY_FILE" ]; then
     echo "[oracle] Error: No candidate key blocks found" >&2
     exit 1
 fi
@@ -68,27 +68,29 @@ rm -rf "$GNUPGHOME"
 mkdir -p "$GNUPGHOME"
 chmod 700 "$GNUPGHOME"
 
-gpg --batch --yes --import "$KEY_FILE" >/tmp/gpg_import.log 2>&1 || true
+# Import key - GPG may return exit code 2 for warnings, which is OK
+gpg --batch --yes --import "$KEY_FILE" 2>&1 || true
 
 # Verify import succeeded by checking for keys in keyring
-if ! gpg --list-secret-keys --with-colons 2>/dev/null | grep -q "^fpr:"; then
-    echo "[oracle] Error: Key import failed - no keys found in keyring" >&2
-    cat /tmp/gpg_import.log >&2 || true
+if ! gpg --list-secret-keys --with-colons 2>/dev/null | grep -q "^sec:"; then
+    echo "[oracle] Error: Key import failed - no secret keys found in keyring" >&2
     exit 1
 fi
 
-echo "[oracle] Step 3: Using imported keyring from successful candidate..."
+echo "[oracle] Step 3: Key imported successfully"
+gpg --list-secret-keys --keyid-format LONG 2>/dev/null || true
 
 echo "[oracle] Step 4: Decrypting ciphertext with recovered key..."
 
-# Decrypt the ciphertext
-# Use --batch --yes to avoid prompts, and --pinentry-mode loopback for non-interactive
+# Decrypt the ciphertext - use simple batch mode without pinentry
 mkdir -p /output
-gpg --batch --yes --pinentry-mode loopback --decrypt --output /output/decrypted.txt ciphertext.asc 2>&1 | grep -v "^gpg:" || true
+gpg --batch --yes --decrypt --output /output/decrypted.txt ciphertext.asc 2>&1 || true
 
 # Verify decryption succeeded
 if [ ! -f /output/decrypted.txt ] || [ ! -s /output/decrypted.txt ]; then
     echo "[oracle] Error: Decryption failed or produced empty output" >&2
+    # Try again with verbose output for debugging
+    gpg --batch --yes --decrypt ciphertext.asc 2>&1 || true
     exit 1
 fi
 

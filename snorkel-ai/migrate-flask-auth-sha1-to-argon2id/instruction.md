@@ -21,7 +21,8 @@ A legacy Flask authentication service currently stores unsalted SHA-1 password h
    - If validation fails (wrong password), skip the user and record in audit log
    - Continue processing all rows even if some fail
    - The migration must run when executing `python3 /app/migrate.py` with no extra arguments
-   - The provided CSV contains valid credentials for at least four users (alice, bob, charlie, diana); those users must be migrated when the script runs
+   - The provided CSV contains valid credentials for four users (alice, bob, charlie, diana); those users must be migrated when the script runs
+   - The CSV also contains an entry for 'eve' with an **incorrect password**; this user should fail migration and appear in `failed_users`
 
 3. **Generate audit report**: After migration completes, write `/app/audit.json` containing:
    - `migrated_count`: Number of users successfully migrated
@@ -67,7 +68,13 @@ A legacy Flask authentication service currently stores unsalted SHA-1 password h
 ## Technical Notes
 
 - Argon2id hashes include the salt and parameters in the hash string itself (standard format)
-- Use `argon2.hash_password()` to create new hashes and `argon2.verify_password()` to verify
+- Use `argon2.PasswordHasher` class: call `hasher.hash(password)` to create new hashes and `hasher.verify(hash, password)` to verify
 - SHA-1 hashes are 40-character hexadecimal strings (no salt prefix)
 - Argon2id hashes start with `$argon2id$` and include version, memory, time, parallelism, salt, and hash
 - When rehashing on login, use the same password that was just verified (don't prompt again)
+
+## Data Format
+
+The `/app/users.json` file contains a JSON object where each key is a username and the value is an object with at least:
+- `username`: The username (string)
+- `password_hash`: The password hash (string) - initially SHA-1, migrated to Argon2id

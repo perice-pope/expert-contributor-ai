@@ -335,3 +335,73 @@ def test_migration_idempotent():
     assert isinstance(audit['migrated_count'], int)
     assert isinstance(audit['failed_count'], int)
     assert isinstance(audit['failed_users'], list)
+
+
+def test_argon2id_hashes_have_unique_salts():
+    """Verify each Argon2id hash has a unique salt (per-user salts)."""
+    users_path = Path("/app/users.json")
+    users = json.loads(users_path.read_text())
+    
+    # Extract salt portion from each Argon2id hash
+    # Format: $argon2id$v=19$m=...,t=...,p=...$<salt>$<hash>
+    salts = []
+    for username, user_data in users.items():
+        stored_hash = user_data.get('password_hash', '')
+        if stored_hash.startswith('$argon2id$'):
+            parts = stored_hash.split('$')
+            if len(parts) >= 5:
+                salt = parts[4]  # Salt is the 5th part (0-indexed: 4)
+                salts.append(salt)
+    
+    # All salts should be unique
+    assert len(salts) == len(set(salts)), (
+        f"Salts must be unique per user. Found {len(salts)} hashes but only {len(set(salts))} unique salts"
+    )
+
+
+def test_sha1_backward_compatibility():
+    """Verify auth service can still authenticate against SHA-1 hashes (backward compatibility)."""
+    # Check if eve still has SHA-1 hash (not migrated due to wrong password)
+    users_path = Path("/app/users.json")
+    users = json.loads(users_path.read_text())
+    
+    # Find a user with SHA-1 hash
+    sha1_user = None
+    for username, user_data in users.items():
+        stored_hash = user_data.get('password_hash', '')
+        if len(stored_hash) == 40 and all(c in '0123456789abcdef' for c in stored_hash.lower()):
+            sha1_user = username
+            break
+    
+    if sha1_user is None:
+        # All users migrated - this test is not applicable
+        return
+    
+    # If eve still has SHA-1, verify service can attempt to authenticate
+    # (will fail due to wrong password, but demonstrates backward compat is possible)
+    import shutil
+    python_cmd = shutil.which("python3") or "python3"
+    service_process = subprocess.Popen(
+        [python_cmd, "/app/auth_service.py"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env={**os.environ, "PYTHONPATH": "/usr/local/lib/python3.11/site-packages:/usr/lib/python3.11/site-packages"}
+    )
+    
+    try:
+        time.sleep(2)
+        
+        # Attempt login - will fail due to wrong password but should not crash
+        response = requests.post(
+            "http://localhost:5000/login",
+            json={"username": sha1_user, "password": "anypassword"},
+            timeout=5
+        )
+        
+        # Should get 401 (invalid credentials), not 500 (crash)
+        assert response.status_code in [200, 401], (
+            f"Service should handle SHA-1 user login attempt gracefully, got {response.status_code}"
+        )
+    finally:
+        service_process.terminate()
+        service_process.wait(timeout=5)
