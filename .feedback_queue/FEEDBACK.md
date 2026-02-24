@@ -5,102 +5,8 @@ when ready rezip the project and submit.
 
 chack and make sure the cli install instructions are in this repo somewhere. 
 
-
-dep-bumper-cli_20260128_204538.zip
-97a311a8-814e-445a-8cd9-9df3e920c5df
-
-Feedback: 
-=== Build CodeExecutionEnvironment:3bfcf448-216f-40f6-8751-40290b7dbec7 ===
-[Container] 2026/01/28 20:46:49.460550 Running on CodeBuild On-demand
-[Container] 2026/01/28 20:46:49.460562 Waiting for agent ping
-[Container] 2026/01/28 20:46:49.662728 Waiting for DOWNLOAD_SOURCE
-[Container] 2026/01/28 20:46:50.719218 Phase is DOWNLOAD_SOURCE
-[Container] 2026/01/28 20:46:50.720500 CODEBUILD_SRC_DIR=/codebuild/output/src2334412617/src
-[Container] 2026/01/28 20:46:50.721083 YAML location is /codebuild/readonly/buildspec.yml
-[Container] 2026/01/28 20:46:50.723558 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:46:50.723654 Processing environment variables
-[Container] 2026/01/28 20:46:50.728664 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:46:50.803130 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:46:50.853471 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:46:50.903559 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:46:51.170096 No runtime version selected in buildspec.
-[Container] 2026/01/28 20:46:51.236823 Moving to directory /codebuild/output/src2334412617/src
-[Container] 2026/01/28 20:46:51.237050 Cache is not defined in the buildspec
-[Container] 2026/01/28 20:46:51.276055 Skip cache due to: no paths specified to be cached
-[Container] 2026/01/28 20:46:51.276284 Registering with agent
-[Container] 2026/01/28 20:46:51.309247 Phases found in YAML: 0
-[Container] 2026/01/28 20:46:51.309677 Phase complete: DOWNLOAD_SOURCE State: SUCCEEDED
-[Container] 2026/01/28 20:46:51.309690 Phase context status code:  Message: 
-[Container] 2026/01/28 20:46:51.423722 Entering phase INSTALL
-[Container] 2026/01/28 20:46:51.461460 Phase complete: INSTALL State: SUCCEEDED
-[Container] 2026/01/28 20:46:51.461481 Phase context status code:  Message: 
-[Container] 2026/01/28 20:46:51.495828 Entering phase PRE_BUILD
-[Container] 2026/01/28 20:46:51.498253 Phase complete: PRE_BUILD State: SUCCEEDED
-[Container] 2026/01/28 20:46:51.498273 Phase context status code:  Message: 
-[Container] 2026/01/28 20:46:51.536701 Entering phase BUILD
-[Container] 2026/01/28 20:46:51.539292 Phase complete: BUILD State: SUCCEEDED
-[Container] 2026/01/28 20:46:51.539312 Phase context status code:  Message: 
-[Container] 2026/01/28 20:46:51.578062 Entering phase POST_BUILD
-[Container] 2026/01/28 20:46:51.580757 Phase complete: POST_BUILD State: SUCCEEDED
-[Container] 2026/01/28 20:46:51.580776 Phase context status code:  Message: 
-[Container] 2026/01/28 20:46:51.633898 Set report auto-discover timeout to 5 seconds
-[Container] 2026/01/28 20:46:51.633942 Expanding base directory path:  .
-[Container] 2026/01/28 20:46:51.637027 Assembling file list
-[Container] 2026/01/28 20:46:51.637043 Expanding .
-[Container] 2026/01/28 20:46:51.640214 Expanding file paths for base directory .
-[Container] 2026/01/28 20:46:51.640226 Assembling file list
-[Container] 2026/01/28 20:46:51.640230 Expanding **/*
-[Container] 2026/01/28 20:46:51.643588 No matching auto-discover report paths found
-[Container] 2026/01/28 20:46:51.643604 Report auto-discover file discovery took 0.009706 seconds
-[Container] 2026/01/28 20:46:51.643616 Phase complete: UPLOAD_ARTIFACTS State: SUCCEEDED
-[Container] 2026/01/28 20:46:51.643638 Phase context status code:  Message: 
-
-
-=== Build CodeExecutionEnvironment:7cc7dcea-e43f-46fe-8be3-6b3956a8667b ===
-Error retrieving logs: Connection closed.
-
-=== Build CodeExecutionEnvironment:0846889d-9365-4635-8543-53078a34c7da ===
-Error retrieving logs: Connection closed.
-
-=== Build CodeExecutionEnvironment:0b1c172f-c79b-4337-b71d-3cadeadd5dbb ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:32278eb3-79a0-463b-91cc-e3636a81eb68 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:d70444d7-d740-4e83-8659-22f6249f11eb ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:c6c58def-080c-4bbf-bfb5-050635d7912d ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:112714fc-66aa-4709-a498-8a5d5f611cb2 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:7f3a54f8-136c-4fff-a3c7-791fe7409d30 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:4bd198af-2bdd-4ba3-8237-3eb143e4ace0 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:61876c69-7c7c-4a7e-a4d2-00ae0cc8ed91 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:fcc2c03d-8a1f-4c54-81a1-de4ff327d6ff ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:7af44870-c5bd-4799-87ec-d80ebb26d01f ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:47327592-4738-41dc-abfa-58a8f43b5601 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-
-This task is not tested with any agents as the Oracle solution failed. Please fix the Oracle solution and re-run the tests.
-
-
-extract-png-flags-lsb_20260128_204540.zip
 6a0ecbf1-f2ed-4949-aa94-d3831df33af3
+extract-png-flags-lsb_20260224_114132.zip
 
 ================================================================================
     REVIEW REPORT: Extract Hidden Flags from PNG Images in Memory Dump
@@ -260,6 +166,192 @@ Evaluates: Binary file carving, LSB steganography decoding, memory forensics,
   removed), the task is otherwise well-designed and ready for use.
 ================================================================================
 
+
+
+
+dep-bumper-cli_20260128_204538.zip
+97a311a8-814e-445a-8cd9-9df3e920c5df
+
+================================================================================
+                  REVIEW REPORT: Interactive Dependency Bumper CLI
+================================================================================
+
+Status:        ❌ FAIL
+Task Location: /root/harbor_tasks/tbench-task
+
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+
+This task requires agents to repair a deliberately broken Python CLI tool
+(dep_bumper.py) that interactively detects outdated npm and PyPI packages,
+applies version bumps, regenerates lockfiles, and writes a conventional-commit
+summary. The oracle solution replaces dep_bumper.py wholesale with a correct
+implementation using npm outdated --json and pip list --outdated --format=json.
+The test suite runs the CLI in a subprocess with simulated stdin, checking
+stdout messages and output files, though most core assertions are guarded by
+conditional branches that only execute when live registry queries confirm the
+pre-installed packages are outdated.
+
+================================================================================
+                            CRITICAL ISSUES ❌
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Requirement #7 Captured Inside a Code Block
+--------------------------------------------------------------------------------
+
+File:    tbench-task/instruction.md (lines 47–60)
+Problem: The opening ``` fence on line 47 (start of the commit-summary
+         example block) is not closed until line 60, after the "7. Finalize
+         output" requirement. When the markdown is rendered, requirement #7
+         and its sub-bullet ("Print `Done!`") appear as literal text inside
+         the code fence and are invisible as a numbered requirement.
+
+Current code:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│     - Example format:                                                       │
+│       ```          ← fence opens here (line 47)                             │
+│       chore(deps): bump npm and PyPI dependencies                           │
+│       ...                                                                   │
+│  7. **Finalize output**:  ← INSIDE the code block!                         │
+│     - Print `Done!` after all steps complete                                │
+│       ```          ← fence closes here (line 60)                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Required fix:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│     - Example format:                                                       │
+│       ```                                                                   │
+│       chore(deps): bump npm and PyPI dependencies                           │
+│       ...                                                                   │
+│       ```          ← close fence BEFORE requirement #7                      │
+│                                                                             │
+│  7. **Finalize output**:                                                    │
+│     - Print `Done!` after all steps complete                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Explanation: Agents reading the rendered markdown will not see "7. Finalize
+output" as a numbered requirement and may not implement the "Print Done!"
+step. The closing ``` fence must be placed immediately after the last
+example entry (the flask line), before the "7." requirement begins.
+
+================================================================================
+                              WARNINGS ⚠️
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Non-Deterministic Test Assertions
+--------------------------------------------------------------------------------
+
+File:    tbench-task/tests/test_outputs.py (lines 81–122, 141–170, 194–211,
+         240–271, 278–301)
+Problem: Five test functions wrap their core assertions in "if has_outdated"
+         branches, silently passing (returning early) when no outdated packages
+         are detected at runtime. test_commit_summary_format returns without
+         asserting anything if commit-summary.txt does not exist. An agent
+         that does not implement the update logic at all could receive a
+         perfect score if the live npm/PyPI registry does not report the
+         pre-installed package versions as outdated.
+
+Current approach: Tests query npm outdated --json and pip list --outdated at
+test time; if the result is empty, all core assertions are skipped.
+
+Suggested fix: Pre-populate npm-cache metadata in the Docker build so that
+npm outdated reliably reports the pinned-old packages as outdated, or mock
+the outdated-package responses in tests so assertions always fire. At minimum,
+test_commit_summary_format should use pytest.skip() rather than a bare
+return, to make the skip explicit and visible in test reports.
+
+Explanation: The Docker image pins specific old versions (express ^4.18.0,
+requests==2.31.0, etc.), but whether these are "outdated" depends on live
+registry connectivity and the current latest versions in the registry. Test
+signal correctness should not be network-state dependent.
+
+--------------------------------------------------------------------------------
+2. Template Artifact Left in solve.sh
+--------------------------------------------------------------------------------
+
+File:    tbench-task/solution/solve.sh (line 2)
+Problem: Line 2 contains the literal text "# CANARY_STRING_PLACEHOLDER",
+         which is an unfilled template token rather than a real canary value.
+
+Current code:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  #!/bin/bash                                                                │
+│  # CANARY_STRING_PLACEHOLDER                                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Suggested fix: Replace with a real unique canary string (e.g., a UUID or
+task-specific token) or remove the line entirely if canary detection is not
+required for this task.
+
+Explanation: An unfilled placeholder signals the task was not fully finalised
+and likely leaves the canary anti-cheating mechanism inactive.
+
+================================================================================
+                             SUGGESTIONS 💡
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Align Interactive Display Format Between Instruction and Solution
+--------------------------------------------------------------------------------
+
+File:    tbench-task/instruction.md (line 21) vs solution/solve.sh (line 138)
+
+Current approach: instruction.md specifies the display format as
+`[index] package-name: current-version -> latest-version (ecosystem)` (index
+in square brackets), while the solution emits `{idx}. {pkg_name}: ...`
+(digit followed by a period). No test validates this format so both pass.
+
+Suggested improvement:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  # instruction.md line 21 — update to match solution output:               │
+│  - Display format: `N. package-name: current -> latest (ecosystem)`        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Rationale: Agents attempt to match the literal format shown in the
+instruction. Aligning the specification with the oracle output eliminates
+ambiguity about whether square brackets around the index are required and
+removes a potential source of agent confusion.
+
+================================================================================
+                            OVERALL ASSESSMENT
+================================================================================
+
+The task concept is realistic and well-suited to benchmarking: repairing a
+deliberately buggy CLI tool with clearly annotated BUG comments is a genuine
+software-engineering challenge. The Dockerfile correctly pins all dependencies,
+avoids copying tests or solution files, and pre-installs both npm and PyPI
+packages so version detection can work. The oracle solution is non-trivial
+and computes correct output rather than hard-coding answers. However, a
+markdown fence bug hides a numbered requirement from agents consuming
+rendered output, and the conditional test logic means most assertions can
+silently pass without exercising any of the core update functionality.
+
+Key Strengths:
+  ✓ Realistic debug-and-repair task with clearly annotated bugs in the
+    starter implementation, giving agents a clear starting point
+  ✓ All dependencies pinned; no reserved directories created; reward.txt
+    always written; TEST_DIR default properly set in test.sh
+  ✓ Non-trivial oracle solution that performs real npm and PyPI computation
+    across both ecosystems with proper error handling
+
+Key Weaknesses:
+  ✗ Markdown code-fence bug buries Requirement #7 inside an example block,
+    hiding the "Print Done!" requirement from agents reading rendered output
+  ✗ Core test assertions are conditionally skipped based on live registry
+    state, making the test suite effectively non-deterministic
+
+Evaluates: CLI tool debugging, Python scripting, multi-ecosystem package
+           management, interactive stdin handling, file manipulation
+
+================================================================================
+  RECOMMENDATION: ❌ REQUIRES FIXES
+
+  Fix the instruction.md code-fence formatting bug (critical) and replace the
+  canary placeholder in solve.sh before deploying this task in evaluations.
+================================================================================
 
 
 windows-artifact-timeline_20260128_204618.zip
