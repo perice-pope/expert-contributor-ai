@@ -1,1788 +1,1738 @@
-Example Prompt: 
-Lets update this project according to the feedback as an individual contributor, meaning arbitrate thru the feedback only doing the least possible to solve issues. Oracle test must pass after we make any prompt or code changes... So run the oracle test before reporting back. Use the CLI to submit the changes for this project: 18cf4bdc-d28d-4044-b904-28bd02e15ad9
+We need from the snorkelai site the UID, filename, and all the text in agent review text box... for each task 
 
-when ready rezip the project and submit. 
-
-chack and make sure the cli install instructions are in this repo somewhere. 
-
-6a0ecbf1-f2ed-4949-aa94-d3831df33af3
-extract-png-flags-lsb_20260224_114132.zip
+c2c815a8-90a9-4bf4-a63a-3479cb5e3ba2
+pylint-async-io-checker_20260224_202702.zip
 
 ================================================================================
-    REVIEW REPORT: Extract Hidden Flags from PNG Images in Memory Dump
+               REVIEW REPORT: Create Pylint Plugin for Async I/O Detection
 ================================================================================
 
-Status:        ❌ FAIL
+Status:        ⚠️  WARNING
 Task Location: /root/harbor_tasks/tbench-task
 
 --------------------------------------------------------------------------------
 SUMMARY
 --------------------------------------------------------------------------------
 
-This task requires agents to perform memory forensics on a raw memory dump by
-carving embedded PNG files using magic-byte signatures, decoding hidden ASCII
-flags via LSB steganography across RGB channels, and writing each discovered
-flag alongside its hexadecimal byte offset to a structured output file. The
-oracle solution implements PNG carving and LSB extraction correctly using
-Pillow, and the 12-test suite is comprehensive, including two dedicated anti-
-cheating tests that re-verify offsets against the dump and re-extract flags
-from carved pixel data. One critical metadata flag is missing from task.toml,
-which prevents the custom docker-compose.yaml from being picked up by the
-harbor framework.
-
-================================================================================
-                            CRITICAL ISSUES ❌
-================================================================================
-
---------------------------------------------------------------------------------
-1. Missing custom_docker_compose = true in task.toml
---------------------------------------------------------------------------------
-
-File:    tbench-task/task.toml ([metadata] section)
-Problem: environment/docker-compose.yaml exists but task.toml does not declare
-         custom_docker_compose = true. Per guideline 9.3, this flag is
-         required for any task that ships a docker-compose.yaml. Without it
-         the harbor framework ignores the compose file and may fail to build
-         or run the task container correctly.
-
-Current code:
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  [metadata]                                                                 │
-│  author_name = "anonymous"                                                  │
-│  author_email = "anonymous"                                                 │
-│  difficulty = "easy"                                                        │
-│  category = "security"                                                      │
-│  tags = ["forensics", "steganography", ...]                                 │
-│  expert_time_estimate_min = 45                                              │
-│  junior_time_estimate_min = 90                                              │
-│  # custom_docker_compose flag is absent                                     │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-Required fix:
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  [metadata]                                                                 │
-│  author_name = "anonymous"                                                  │
-│  author_email = "anonymous"                                                 │
-│  difficulty = "easy"                                                        │
-│  category = "security"                                                      │
-│  tags = ["forensics", "steganography", ...]                                 │
-│  expert_time_estimate_min = 45                                              │
-│  junior_time_estimate_min = 90                                              │
-│  custom_docker_compose = true                                               │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-Explanation: The task uses a single-service docker-compose.yaml (only the
-main container) with a non-standard build context (${CONTEXT_DIR}/..) so
-that the Dockerfile can reach app/ at the task root. This is a legitimate
-use of a custom compose file; the flag simply must be declared so the
-framework routes through it.
+This task asks agents to complete and correct a buggy Pylint plugin that
+detects blocking I/O operations (open, time.sleep, requests.get, etc.) inside
+async functions, including handling import aliases, asyncio.to_thread exemptions,
+and async context managers. The oracle solution rewrites the plugin from scratch
+using astroid-based AST traversal and rewrites the pyproject.toml and agent
+unit tests. The external test suite (test_outputs.py) validates the plugin via
+direct Pylint subprocess invocations and runs the agent's own unit test suite
+as a nested verification layer.
 
 ================================================================================
                               WARNINGS ⚠️
 ================================================================================
 
 --------------------------------------------------------------------------------
-1. Dead Code in solve.sh Reads Entire Binary Dump Unnecessarily
+1. Unrelated Dependencies Installed in Dockerfile
 --------------------------------------------------------------------------------
 
-File:    tbench-task/solution/solve.sh (line 13)
-Problem: Line 13 base64-encodes the entire memdump.raw into a bash variable
-         that is never used. The immediately following comment acknowledges
-         this ("Actually, let's use Python for this"). The command still
-         executes on every oracle run, wasting CPU and memory proportional
-         to the size of the dump.
-
-Current approach:
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  memdump_data=$(cat /app/memdump.raw | base64 -w 0)                        │
-│  # Actually, let's use Python for this - it's more reliable for binary data │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-Suggested fix:
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  # (Remove line 13 entirely; Python handles all binary I/O below)           │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-Explanation: Deleting this one line eliminates the useless subshell, the
-unnecessary base64 expansion of potentially megabytes of binary data, and
-the residual confusion left by the stale comment.
-
---------------------------------------------------------------------------------
-2. Difficulty Rating "easy" Underestimates Task Complexity
---------------------------------------------------------------------------------
-
-File:    tbench-task/task.toml (line 6)
-Problem: The task requires binary-level PNG carving from a raw memory dump,
-         multi-channel LSB steganography decoding, null-byte termination
-         logic, and noise/decoy discrimination — a combination that is
-         typically medium difficulty even for experienced developers.
-
-Current approach: difficulty = "easy"
-
-Suggested fix:
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  difficulty = "medium"                                                      │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-Explanation: The provided expert estimate (45 min) and junior estimate
-(90 min) are already consistent with medium difficulty. The buggy starter
-script (extract_flags.py) reduces friction but still requires non-trivial
-debugging of binary parsing and steganography logic. Mislabeled difficulty
-skews benchmark scoring and percentile comparisons across models.
-
-================================================================================
-                            OVERALL ASSESSMENT
-================================================================================
-
-This is a well-crafted forensics task with a clear narrative, precisely
-specified output format, and an unusually strong test suite featuring dedicated
-anti-cheating tests that re-verify hex offsets against the raw dump and re-
-extract flags from carved image pixels. The single blocking issue is the
-missing custom_docker_compose = true flag in task.toml — a one-line fix.
-After that correction and the cleanup of the dead bash line in solve.sh, the
-task is production-ready.
-
-Key Strengths:
-  ✓ 12-test suite with two strong anti-cheat tests (offset verification
-    and LSB re-extraction) effectively prevent flag hardcoding
-  ✓ Output format (0x<hex>: FLAG{...}) is completely and unambiguously
-    specified in instruction.md, with three concrete expected flags
-  ✓ All Python and test dependencies are pinned; test.sh follows the
-    standard uv/uvx pattern with TEST_DIR default and reward file
-
-Key Weaknesses:
-  ✗ Missing custom_docker_compose = true in task.toml causes framework
-    to ignore the custom docker-compose.yaml at runtime
-  ✗ Dead bash code in solve.sh needlessly base64-encodes the full dump
-
-Evaluates: Binary file carving, LSB steganography decoding, memory forensics,
-           signal-vs-noise discrimination
-
-================================================================================
-  RECOMMENDATION: ❌ REQUIRES FIXES
-
-  Add custom_docker_compose = true to the [metadata] section of task.toml.
-  This is a one-line fix; once applied (and the dead code in solve.sh
-  removed), the task is otherwise well-designed and ready for use.
-================================================================================
-
-
-
-
-dep-bumper-cli_20260128_204538.zip
-97a311a8-814e-445a-8cd9-9df3e920c5df
-
-================================================================================
-                  REVIEW REPORT: Interactive Dependency Bumper CLI
-================================================================================
-
-Status:        ❌ FAIL
-Task Location: /root/harbor_tasks/tbench-task
-
---------------------------------------------------------------------------------
-SUMMARY
---------------------------------------------------------------------------------
-
-This task requires agents to repair a deliberately broken Python CLI tool
-(dep_bumper.py) that interactively detects outdated npm and PyPI packages,
-applies version bumps, regenerates lockfiles, and writes a conventional-commit
-summary. The oracle solution replaces dep_bumper.py wholesale with a correct
-implementation using npm outdated --json and pip list --outdated --format=json.
-The test suite runs the CLI in a subprocess with simulated stdin, checking
-stdout messages and output files, though most core assertions are guarded by
-conditional branches that only execute when live registry queries confirm the
-pre-installed packages are outdated.
-
-================================================================================
-                            CRITICAL ISSUES ❌
-================================================================================
-
---------------------------------------------------------------------------------
-1. Requirement #7 Captured Inside a Code Block
---------------------------------------------------------------------------------
-
-File:    tbench-task/instruction.md (lines 47–60)
-Problem: The opening ``` fence on line 47 (start of the commit-summary
-         example block) is not closed until line 60, after the "7. Finalize
-         output" requirement. When the markdown is rendered, requirement #7
-         and its sub-bullet ("Print `Done!`") appear as literal text inside
-         the code fence and are invisible as a numbered requirement.
+File:    tbench-task/environment/Dockerfile (lines 12-17)
+Problem: Flask, Redis, and Pandas are installed despite being entirely unrelated
+         to a Pylint plugin task. These packages bloat the image, slow build
+         times, and may mislead agents about the expected solution stack.
 
 Current code:
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│     - Example format:                                                       │
-│       ```          ← fence opens here (line 47)                             │
-│       chore(deps): bump npm and PyPI dependencies                           │
-│       ...                                                                   │
-│  7. **Finalize output**:  ← INSIDE the code block!                         │
-│     - Print `Done!` after all steps complete                                │
-│       ```          ← fence closes here (line 60)                            │
+│  RUN pip install --no-cache-dir \                                           │
+│      flask==3.1.0 \                                                         │
+│      redis==5.2.1 \                                                         │
+│      pandas==2.2.3 \                                                        │
+│      pylint==3.0.3 \                                                        │
+│      toml==0.10.2                                                           │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 Required fix:
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│     - Example format:                                                       │
-│       ```                                                                   │
-│       chore(deps): bump npm and PyPI dependencies                           │
-│       ...                                                                   │
-│       ```          ← close fence BEFORE requirement #7                      │
-│                                                                             │
-│  7. **Finalize output**:                                                    │
-│     - Print `Done!` after all steps complete                                │
+│  RUN pip install --no-cache-dir \                                           │
+│      pylint==3.0.3 \                                                        │
+│      toml==0.10.2                                                           │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Explanation: Agents reading the rendered markdown will not see "7. Finalize
-output" as a numbered requirement and may not implement the "Print Done!"
-step. The closing ``` fence must be placed immediately after the last
-example entry (the flask line), before the "7." requirement begins.
-
-================================================================================
-                              WARNINGS ⚠️
-================================================================================
+Explanation: These packages appear to be leftover from a copy-paste template.
+Only pylint and toml are needed for the task environment; astroid is already
+installed as a pylint transitive dependency.
 
 --------------------------------------------------------------------------------
-1. Non-Deterministic Test Assertions
+2. Unreplaced CANARY_STRING_PLACEHOLDER Template Artifact
 --------------------------------------------------------------------------------
 
-File:    tbench-task/tests/test_outputs.py (lines 81–122, 141–170, 194–211,
-         240–271, 278–301)
-Problem: Five test functions wrap their core assertions in "if has_outdated"
-         branches, silently passing (returning early) when no outdated packages
-         are detected at runtime. test_commit_summary_format returns without
-         asserting anything if commit-summary.txt does not exist. An agent
-         that does not implement the update logic at all could receive a
-         perfect score if the live npm/PyPI registry does not report the
-         pre-installed package versions as outdated.
-
-Current approach: Tests query npm outdated --json and pip list --outdated at
-test time; if the result is empty, all core assertions are skipped.
-
-Suggested fix: Pre-populate npm-cache metadata in the Docker build so that
-npm outdated reliably reports the pinned-old packages as outdated, or mock
-the outdated-package responses in tests so assertions always fire. At minimum,
-test_commit_summary_format should use pytest.skip() rather than a bare
-return, to make the skip explicit and visible in test reports.
-
-Explanation: The Docker image pins specific old versions (express ^4.18.0,
-requests==2.31.0, etc.), but whether these are "outdated" depends on live
-registry connectivity and the current latest versions in the registry. Test
-signal correctness should not be network-state dependent.
-
---------------------------------------------------------------------------------
-2. Template Artifact Left in solve.sh
---------------------------------------------------------------------------------
-
-File:    tbench-task/solution/solve.sh (line 2)
-Problem: Line 2 contains the literal text "# CANARY_STRING_PLACEHOLDER",
-         which is an unfilled template token rather than a real canary value.
+File:    tbench-task/solution/solve.sh (lines 2, 14, 340, 368)
+Problem: The literal string CANARY_STRING_PLACEHOLDER appears four times in
+         solve.sh—once as a top-level comment and three times inside heredocs
+         that write source files to disk. This is an unprocessed template
+         marker. After the oracle runs, these placeholders end up as comments
+         inside /app/async_io_checker.py, /app/pyproject.toml, and
+         /app/tests/test_async_io_checker.py, serving no purpose.
 
 Current code:
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  #!/bin/bash                                                                │
-│  # CANARY_STRING_PLACEHOLDER                                                │
+│  # CANARY_STRING_PLACEHOLDER           ← line 2 (solve.sh itself)          │
+│  ...                                                                        │
+│  cat > async_io_checker.py << 'PYTHON_EOF'                                 │
+│  # CANARY_STRING_PLACEHOLDER           ← line 14 (embedded in .py file)    │
+│  ...                                                                        │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Suggested fix: Replace with a real unique canary string (e.g., a UUID or
-task-specific token) or remove the line entirely if canary detection is not
-required for this task.
+Suggested fix: Replace each occurrence with either a real unique canary value
+(e.g., a SHA or UUID checked by tests) or remove the lines entirely if canary
+checking is not intended.
 
-Explanation: An unfilled placeholder signals the task was not fully finalised
-and likely leaves the canary anti-cheating mechanism inactive.
+Explanation: As written the placeholders add noise without enabling any
+anti-cheating mechanism, since test_outputs.py contains no assertions that
+reference CANARY_STRING_PLACEHOLDER.
 
 ================================================================================
                              SUGGESTIONS 💡
 ================================================================================
 
 --------------------------------------------------------------------------------
-1. Align Interactive Display Format Between Instruction and Solution
+1. Difficulty Label Underestimates Task Complexity
 --------------------------------------------------------------------------------
 
-File:    tbench-task/instruction.md (line 21) vs solution/solve.sh (line 138)
+File:    tbench-task/task.toml (line 6)
 
-Current approach: instruction.md specifies the display format as
-`[index] package-name: current-version -> latest-version (ecosystem)` (index
-in square brackets), while the solution emits `{idx}. {pkg_name}: ...`
-(digit followed by a period). No test validates this format so both pass.
+Current approach: difficulty = "easy"
 
 Suggested improvement:
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  # instruction.md line 21 — update to match solution output:               │
-│  - Display format: `N. package-name: current -> latest (ecosystem)`        │
+│  difficulty = "medium"                                                      │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Rationale: Agents attempt to match the literal format shown in the
-instruction. Aligning the specification with the oracle output eliminates
-ambiguity about whether square brackets around the index are required and
-removes a potential source of agent confusion.
+Rationale: The task requires knowledge of astroid AST internals, Pylint's
+checker registration API, import alias resolution, async context manager
+detection, pyproject.toml entry-point configuration, and writing a parallel
+unit test suite. Implementing all layers correctly is solidly medium difficulty;
+the expert_time_estimate_min of 60 minutes also aligns better with "medium"
+than "easy."
 
 ================================================================================
                             OVERALL ASSESSMENT
 ================================================================================
 
-The task concept is realistic and well-suited to benchmarking: repairing a
-deliberately buggy CLI tool with clearly annotated BUG comments is a genuine
-software-engineering challenge. The Dockerfile correctly pins all dependencies,
-avoids copying tests or solution files, and pre-installs both npm and PyPI
-packages so version detection can work. The oracle solution is non-trivial
-and computes correct output rather than hard-coding answers. However, a
-markdown fence bug hides a numbered requirement from agents consuming
-rendered output, and the conditional test logic means most assertions can
-silently pass without exercising any of the core update functionality.
+The task is well-conceived and tests a realistic, non-trivial software
+engineering skill (static analysis tooling). The instruction is detailed, the
+test suite is thorough with good docstrings and behavior coverage, and the
+oracle solution correctly implements all stated requirements. However, the
+Dockerfile carries three wholly unrelated packages inherited from a template,
+and solve.sh contains four unreplaced CANARY_STRING_PLACEHOLDER markers that
+propagate into oracle-generated files without any corresponding test assertion.
 
 Key Strengths:
-  ✓ Realistic debug-and-repair task with clearly annotated bugs in the
-    starter implementation, giving agents a clear starting point
-  ✓ All dependencies pinned; no reserved directories created; reward.txt
-    always written; TEST_DIR default properly set in test.sh
-  ✓ Non-trivial oracle solution that performs real npm and PyPI computation
-    across both ecosystems with proper error handling
+  ✓ Comprehensive test coverage—15 behavioral tests exercise every requirement
+    stated in instruction.md with informative docstrings
+  ✓ Oracle solution is genuine (computes via AST traversal, no hardcoded output)
+    and covers alias resolution, to_thread exemption, and async CMs
+  ✓ test.sh correctly handles TEST_DIR default, set +e before pytest, and
+    always writes /logs/verifier/reward.txt
 
 Key Weaknesses:
-  ✗ Markdown code-fence bug buries Requirement #7 inside an example block,
-    hiding the "Print Done!" requirement from agents reading rendered output
-  ✗ Core test assertions are conditionally skipped based on live registry
-    state, making the test suite effectively non-deterministic
+  ✗ Dockerfile installs flask, redis, and pandas—packages with no relation to
+    the Pylint plugin task, indicating an unfinished template cleanup
+  ✗ Four unreplaced CANARY_STRING_PLACEHOLDER markers in solve.sh produce
+    dead comment noise in oracle-generated source files
 
-Evaluates: CLI tool debugging, Python scripting, multi-ecosystem package
-           management, interactive stdin handling, file manipulation
+Evaluates: Pylint plugin development, Python AST traversal, async code
+           analysis, pyproject.toml packaging and entry-point configuration
+
+================================================================================
+  RECOMMENDATION: ⚠️  NEEDS REVISION
+
+  Fix the two warnings (remove unrelated Dockerfile packages and resolve the
+  CANARY_STRING_PLACEHOLDER markers) before promoting to production use. The
+  task logic and test suite are otherwise sound.
+================================================================================
+
+
+e5162be9-77c0-4402-883a-943ee6824228
+windows-artifact-timeline_20260224_204434.zip
+
+================================================================================
+                REVIEW REPORT: Windows Artifact Timeline Correlation
+================================================================================
+
+Status:        ⚠️ WARNING
+Task Location: /root/harbor_tasks/tbench-task
+
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+
+This task requires agents to build a Python forensics tool that ingests Windows
+MFT records, EVTX event logs, and Prefetch artifacts, normalizes all timestamps
+to UTC, deduplicates and correlates them into a chronological CSV timeline, and
+flags suspicious events (unsigned binaries, registry Run key modifications) in a
+JSON summary. The oracle solution rewrites the provided buggy starter script
+with corrected timezone handling, chronological sorting, deduplication, and
+case-insensitive anomaly detection. The 18-test suite validates file existence,
+header correctness, UTC timestamp format, sort order, source coverage, anomaly
+detection accuracy, and CSV/JSON consistency.
+
+================================================================================
+                              WARNINGS ⚠️
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Non-Standard Build Context via Parent-Directory Traversal
+--------------------------------------------------------------------------------
+
+File:    tbench-task/environment/docker-compose.yaml (lines 5-7)
+Problem: The starter code lives in app/ at the task root rather than inside
+         environment/. To work around this, the compose file sets the build
+         context to ${CONTEXT_DIR}/.., which is the task root. This non-standard
+         traversal exposes the solution/ and tests/ directories to the Docker
+         build daemon (though they are not COPY'd into the image). It also
+         deviates from the standard Harbor pattern and could break if the
+         harness changes how CONTEXT_DIR is resolved.
+
+Current code:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  build:                                                                     │
+│    context: ${CONTEXT_DIR}/..                                               │
+│    dockerfile: ${CONTEXT_DIR}/Dockerfile                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Suggested fix: Move the app/ directory inside environment/ and use the
+standard context:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  build:                                                                     │
+│    context: ${CONTEXT_DIR}                                                  │
+│  # Dockerfile becomes: COPY app/ /app/  (app/ now inside environment/)     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Explanation: Placing task data inside environment/ is the canonical Harbor
+structure. Removing the ../ traversal keeps the build context tight, avoids
+inadvertently including solution/ and tests/ files, and ensures compatibility
+with any future harness changes to how CONTEXT_DIR is provided.
+
+--------------------------------------------------------------------------------
+2. uv Installed in Dockerfile but Unused by test.sh
+--------------------------------------------------------------------------------
+
+File:    tbench-task/environment/Dockerfile (lines 8-10)
+Problem: The Dockerfile installs uv (pinned to 0.9.5) and adds it to PATH,
+         but test.sh installs pytest via pip directly and never invokes uv.
+         This adds unnecessary build time and image weight without benefit to
+         the test pipeline, and creates an inconsistency for anyone reading
+         the task's test infrastructure.
+
+Current approach: uv is fetched and installed at image-build time, but
+test.sh runs `pip install pytest==8.4.1` and `python3 -m pytest`.
+
+Suggested fix: Either remove uv from the Dockerfile (if agents are not
+expected to use it) or update test.sh to use uv for consistency:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  # Option A – remove from Dockerfile (preferred if agents won't use uv):   │
+│  # Delete the uv RUN + ENV lines from environment/Dockerfile                │
+│                                                                             │
+│  # Option B – update test.sh to use uv (matches standard format):          │
+│  uv venv .tbench-testing                                                    │
+│  source .tbench-testing/bin/activate                                        │
+│  uv pip install pytest==8.4.1                                               │
+│  uv run pytest /tests/test_outputs.py -rA                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Explanation: Consistency between what the Dockerfile provides and what the
+test runner actually uses makes the task easier to audit and maintain.
+
+================================================================================
+                             SUGGESTIONS 💡
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Canary String Placeholder Left Unfilled in solve.sh
+--------------------------------------------------------------------------------
+
+File:    tbench-task/solution/solve.sh (line 2)
+
+Current approach: Line 2 contains `# CANARY_STRING_PLACEHOLDER`, which is a
+comment indicating an anti-cheating canary string was intended to be injected
+but was never replaced with an actual value.
+
+Suggested improvement:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  # Replace the placeholder with a real unique canary token, e.g.:          │
+│  # CANARY: a3f7-91bc-4e2d                                                  │
+│  # Then add a test that verifies this string is NOT present in the          │
+│  # agent's output files (proving the agent didn't copy the solution).       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Rationale: An unfilled placeholder provides no anti-cheating protection. A
+real canary embedded in solve.sh (and absent from the starter code) that is
+verified absent from agent outputs would meaningfully guard against solution
+leakage.
+
+--------------------------------------------------------------------------------
+2. Missing Recommended WORKDIR Validation in test.sh
+--------------------------------------------------------------------------------
+
+File:    tbench-task/tests/test.sh (after line 4)
+
+Current approach: test.sh does not check whether PWD is "/" before running
+tests. The Dockerfile sets WORKDIR /app, so this is low-risk, but it is
+a recommended safety guard in the standard test.sh template.
+
+Suggested improvement:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  if [ "$PWD" = "/" ]; then                                                  │
+│      echo "Error: No working directory set. Set a WORKDIR in Dockerfile."  │
+│      exit 1                                                                 │
+│  fi                                                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Rationale: Adding this guard (placed before tests run, not after) aligns
+with the standard template and provides a clear diagnostic message if the
+container somehow starts without a working directory set.
+
+================================================================================
+                            OVERALL ASSESSMENT
+================================================================================
+
+This is a well-conceived and thoroughly tested security forensics task that
+realistically challenges agents to handle timezone conversion, multi-format
+parsing, event deduplication, and anomaly detection. The instruction is
+detailed and schema-complete, the 18-test suite is comprehensive with
+informative docstrings, and the oracle solution is non-trivial. The two
+warnings are structural rather than functional—the task runs correctly in
+its current form—but the non-standard build context warrants cleanup before
+broader deployment.
+
+Key Strengths:
+  ✓ 18-test suite with clear docstrings and full behavior coverage
+  ✓ Exact output schemas (CSV columns, JSON fields, anomaly type strings)
+    are unambiguously defined in instruction.md
+  ✓ Controlled test data covers edge cases: malformed lines, case
+    variations (Signed:FALSE), duplicates, and non-start service events
+
+Key Weaknesses:
+  ✗ app/ directory outside environment/ forces a non-standard
+    parent-directory build context in docker-compose.yaml
+  ✗ uv installed in image but not used by test.sh, creating an
+    inconsistency in the test infrastructure
+
+Evaluates: Windows forensic artifact parsing, UTC timezone normalization,
+           event timeline correlation, security anomaly detection
+
+================================================================================
+  RECOMMENDATION: ⚠️ NEEDS REVISION
+
+  Relocate app/ into environment/ to use the standard Harbor build context,
+  and remove or properly use uv in test.sh. No functional logic changes are
+  required; the task tests correctly once the structural issues are resolved.
+================================================================================
+
+b8450dd0-3d9e-47ab-85ad-b69f9a3eaa8f
+recover-pgp-key-from-memory-dump_20260224_211208.zip
+
+================================================================================
+                    REVIEW REPORT: Recover OpenPGP Private Key
+                               from Process Memory Dump
+================================================================================
+
+Status:        ❌ FAIL
+Task Location: /root/harbor_tasks/tbench-task
+
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+
+This task asks agents to perform security forensics: extract a fragmented
+OpenPGP private key from a process memory dump, reconstruct it by stripping
+noise lines, import it into GPG, and decrypt a provided ciphertext to prove
+successful recovery. The oracle solution uses inline Python to parse and
+clean candidate key blocks, then shells out to `gpg` for import and
+decryption. The test suite contains 7 tests validating file existence,
+PGP block format, noise removal, decrypted content, and GPG keyring state.
+
+================================================================================
+                            CRITICAL ISSUES ❌
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Task Data Files Reside Outside `environment/` Directory
+--------------------------------------------------------------------------------
+
+File:    tbench-task/ (root level — app/ directory)
+Problem: The three task data files (memory.dump, ciphertext.asc, extract_key
+         .sh) are placed in tbench-task/app/ rather than inside
+         tbench-task/environment/. Per the Terminal-Bench 2.0 spec, all
+         files that must be COPYed into the image must live inside
+         environment/ so they are within the Docker build context. As
+         written, the Dockerfile's COPY instruction will fail at build time
+         if the harness sets the build context to environment/.
+
+Current code:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  # File tree (wrong layout)                                                 │
+│  tbench-task/                                                               │
+│  ├── app/                    ← data files at task root (outside build ctx)  │
+│  │   ├── ciphertext.asc                                                     │
+│  │   ├── extract_key.sh                                                     │
+│  │   └── memory.dump                                                        │
+│  └── environment/                                                           │
+│      └── Dockerfile          ← COPY app/ /app/ cannot find app/ here        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Required fix:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  # Correct layout — move data files inside environment/                     │
+│  tbench-task/                                                               │
+│  └── environment/                                                           │
+│      ├── Dockerfile                                                         │
+│      └── app/                ← data files now inside the build context      │
+│          ├── ciphertext.asc                                                 │
+│          ├── extract_key.sh                                                 │
+│          └── memory.dump                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Explanation: The Terminal-Bench 2.0 spec states that all task-specific data
+             files must live under environment/ alongside the Dockerfile.
+             Moving app/ into environment/ makes the COPY instruction
+             valid regardless of how the harness sets the build context.
+
+================================================================================
+                              WARNINGS ⚠️
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Difficulty Rating Appears Too Low for Task Complexity
+--------------------------------------------------------------------------------
+
+File:    tbench-task/task.toml (line 6)
+Problem: The task is rated "easy", but recovering an OpenPGP private key
+         from a binary process memory dump requires understanding PGP ASCII
+         armor format (RFC 4880 §6.2), noise-filtering heuristics, GPG
+         command-line non-interactive configuration, and passphrase-less
+         decryption inside a container — a combination most developers
+         would not accomplish quickly.
+
+Current approach: difficulty = "easy" with expert_time_estimate_min = 30.
+
+Suggested fix:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  difficulty = "medium"                                                      │
+│  expert_time_estimate_min = 30                                              │
+│  junior_time_estimate_min = 90                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Explanation: A task that requires binary-level memory analysis, PGP format
+             knowledge, and non-interactive GPG orchestration is more
+             naturally "medium". An incorrect difficulty rating skews
+             benchmark scoring and agent-selection stratification.
+
+--------------------------------------------------------------------------------
+2. Noise Marker "MID_NOISE" Tested but Undocumented in instruction.md
+--------------------------------------------------------------------------------
+
+File:    tbench-task/tests/test_outputs.py (line 51)
+         tbench-task/instruction.md (line 10)
+Problem: test_recovered_key_no_noise_lines checks for three markers:
+         "NOISE_", "GARBAGE_", and "MID_NOISE". The instruction only
+         mentions "NOISE_" and "GARBAGE_" as examples of noise patterns.
+         "MID_NOISE" (which does NOT contain the substring "NOISE_") is
+         silently checked without being described, creating a hidden
+         requirement agents cannot infer from the instructions.
+
+Current approach: Instruction says "lines containing `NOISE_` or `GARBAGE_`";
+test enforces a third unlisted pattern "MID_NOISE".
+
+Suggested fix: Add the third pattern to instruction.md:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  The reconstructed key must contain a single BEGIN/END PGP PRIVATE KEY      │
+│  BLOCK pair with all noise lines removed (e.g., lines containing            │
+│  `NOISE_`, `GARBAGE_`, or `MID_NOISE`).                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Explanation: Every tested behavior must be described in instruction.md.
+             Agents that clean "NOISE_" and "GARBAGE_" but not "MID_NOISE"
+             will fail a test with no guidance from the instructions.
+
+================================================================================
+                             SUGGESTIONS 💡
+================================================================================
+
+--------------------------------------------------------------------------------
+1. test_key_was_imported Checks File Presence Instead of Key Listing
+--------------------------------------------------------------------------------
+
+File:    tbench-task/tests/test_outputs.py (lines 91–102)
+
+Current approach: The test asserts that one of pubring.kbx, secring.gpg, or
+pubring.gpg exists under ~/.gnupg. A GPG home directory is created in the
+Dockerfile, so the directory—and possibly the file—could exist even if no
+key was ever imported, yielding a false positive.
+
+Suggested improvement:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  import subprocess                                                          │
+│                                                                             │
+│  def test_key_was_imported():                                               │
+│      """Verify a private key is listed in the GPG keyring."""               │
+│      result = subprocess.run(                                               │
+│          ["gpg", "--list-secret-keys", "--with-colons"],                    │
+│          capture_output=True, text=True                                     │
+│      )                                                                      │
+│      assert "sec:" in result.stdout, (                                      │
+│          "No secret keys found — key may not have been imported"            │
+│      )                                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Rationale: Calling `gpg --list-secret-keys` directly matches the requirement
+           stated in instruction.md ("verify it is listed by gpg
+           --list-secret-keys") and eliminates the false-positive risk from
+           pre-existing keyring files.
+
+================================================================================
+                            OVERALL ASSESSMENT
+================================================================================
+
+The task concept is well-conceived — GPG forensic key recovery is a
+realistic and interesting security engineering scenario. The instruction is
+detailed, the oracle solution is non-trivial and fully computed, and the
+test suite covers all specified outputs with clear docstrings. However,
+placing task data files outside the environment/ directory is a structural
+defect that will cause Docker build failures under standard harness
+configurations, and a documentation gap around the "MID_NOISE" marker
+creates a hidden test requirement.
+
+Key Strengths:
+  ✓ Realistic, non-trivial security-forensics scenario
+  ✓ Detailed instructions with explicit file paths, constraints, and
+    output format
+  ✓ Comprehensive 7-test suite with informative docstrings and no
+    hardcoded or latency-dependent assertions
+
+Key Weaknesses:
+  ✗ Data files (app/) placed at task root instead of inside environment/,
+    breaking the Docker build context
+  ✗ "MID_NOISE" noise marker enforced by tests but absent from
+    instruction.md
+
+Evaluates: Memory forensics, PGP/OpenPGP key format knowledge, GPG
+           command-line usage, shell scripting for security tooling
 
 ================================================================================
   RECOMMENDATION: ❌ REQUIRES FIXES
 
-  Fix the instruction.md code-fence formatting bug (critical) and replace the
-  canary placeholder in solve.sh before deploying this task in evaluations.
+  Move app/ into environment/ to fix the Docker build-context defect, and
+  add "MID_NOISE" to instruction.md before this task is used in evaluation.
 ================================================================================
+ 
 
-
-windows-artifact-timeline_20260128_204618.zip
-e5162be9-77c0-4402-883a-943ee6824228
-
-=== Build CodeExecutionEnvironment:b9de9ab7-9a16-4085-8532-7a50216f9d8d ===
-Error retrieving logs: Connection closed.
-
-=== Build CodeExecutionEnvironment:ecae10f3-0569-4327-b3be-f011164c51bf ===
-[Container] 2026/01/28 20:48:57.655644 Running on CodeBuild On-demand
-[Container] 2026/01/28 20:48:57.655657 Waiting for agent ping
-[Container] 2026/01/28 20:48:58.860460 Waiting for DOWNLOAD_SOURCE
-[Container] 2026/01/28 20:48:59.090275 Phase is DOWNLOAD_SOURCE
-[Container] 2026/01/28 20:48:59.091472 CODEBUILD_SRC_DIR=/codebuild/output/src3017178518/src
-[Container] 2026/01/28 20:48:59.091992 YAML location is /codebuild/readonly/buildspec.yml
-[Container] 2026/01/28 20:48:59.094436 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:48:59.094560 Processing environment variables
-[Container] 2026/01/28 20:48:59.099591 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:48:59.157014 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:48:59.211704 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:48:59.251510 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:48:59.359307 Moving to directory /codebuild/output/src3017178518/src
-[Container] 2026/01/28 20:48:59.359331 Cache is not defined in the buildspec
-[Container] 2026/01/28 20:48:59.395290 Skip cache due to: no paths specified to be cached
-[Container] 2026/01/28 20:48:59.395546 Registering with agent
-[Container] 2026/01/28 20:48:59.430290 Phases found in YAML: 2
-[Container] 2026/01/28 20:48:59.430308  PRE_BUILD: 9 commands
-[Container] 2026/01/28 20:48:59.430312  BUILD: 10 commands
-[Container] 2026/01/28 20:48:59.430572 Phase complete: DOWNLOAD_SOURCE State: SUCCEEDED
-[Container] 2026/01/28 20:48:59.430630 Phase context status code:  Message: 
-[Container] 2026/01/28 20:48:59.541125 Entering phase INSTALL
-[Container] 2026/01/28 20:48:59.585463 Phase complete: INSTALL State: SUCCEEDED
-[Container] 2026/01/28 20:48:59.585483 Phase context status code:  Message: 
-[Container] 2026/01/28 20:48:59.623238 Entering phase PRE_BUILD
-[Container] 2026/01/28 20:48:59.660153 Running command echo "================================================"
-================================================
-
-[Container] 2026/01/28 20:48:59.665662 Running command echo "Running difficulty checks in envgen environment"
-Running difficulty checks in envgen environment
-
-[Container] 2026/01/28 20:48:59.670840 Running command echo "================================================"
-================================================
-
-[Container] 2026/01/28 20:48:59.676161 Running command echo "Starting Docker daemon..."
-Starting Docker daemon...
-
-[Container] 2026/01/28 20:48:59.681514 Running command dockerd --log-level=error >/var/log/dockerd.log 2>&1 &
-
-[Container] 2026/01/28 20:48:59.686867 Running command echo "Waiting for Docker daemon to be ready..."
-Waiting for Docker daemon to be ready...
-
-[Container] 2026/01/28 20:48:59.692344 Running command timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
-
-[Container] 2026/01/28 20:49:02.763884 Running command echo "✓ Docker daemon is ready"
-✓ Docker daemon is ready
-
-[Container] 2026/01/28 20:49:02.769517 Running command docker --version
-Docker version 26.1.5, build a72d7cdbeb991662bf954bfb8d02274124af21e3
-
-[Container] 2026/01/28 20:49:02.785889 Phase complete: PRE_BUILD State: SUCCEEDED
-[Container] 2026/01/28 20:49:02.785904 Phase context status code:  Message: 
-[Container] 2026/01/28 20:49:02.825861 Entering phase BUILD
-[Container] 2026/01/28 20:49:02.826894 Running command mkdir -p ~/harbor_tasks/tbench-task
-
-[Container] 2026/01/28 20:49:02.832954 Running command mkdir -p ~/jobs
-
-[Container] 2026/01/28 20:49:02.838836 Running command cp -r $CODEBUILD_SRC_DIR/* ~/harbor_tasks/tbench-task/
-
-[Container] 2026/01/28 20:49:02.846078 Running command ls -R ~/harbor_tasks/tbench-task
-/root/harbor_tasks/tbench-task:
-app
-environment
-instruction.md
-solution
-task.toml
-tests
-
-/root/harbor_tasks/tbench-task/app:
-data
-timeline_tool.py
-
-/root/harbor_tasks/tbench-task/app/data:
-events.evtx.txt
-mft_records.txt
-prefetch.txt
-
-/root/harbor_tasks/tbench-task/environment:
-Dockerfile
-
-/root/harbor_tasks/tbench-task/solution:
-solve.sh
-
-/root/harbor_tasks/tbench-task/tests:
-test.sh
-test_outputs.py
-
-[Container] 2026/01/28 20:49:02.853186 Running command echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USERNAME" --password-stdin
-WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
-Configure a credential helper to remove this warning. See
-https://docs.docker.com/engine/reference/commandline/login/#credentials-store
-
-Login Succeeded
-
-[Container] 2026/01/28 20:49:03.412993 Running command cd ~ && TASK=tbench-task
-
-[Container] 2026/01/28 20:49:03.418780 Running command echo '{"solvable":"","difficulty":"","agents":"","tests_results":"","text_summary":""}' | aws s3 cp - ${OUTPUT_S3_URI}
-
-[Container] 2026/01/28 20:49:04.116316 Running command export BUILD_ARTIFACT_S3_DIR="s3://daas-blobs/codebuild_uploads/autoeval_artifacts"
-
-[Container] 2026/01/28 20:49:04.122388 Running command export CODEBUILD_SRC_DIR_helper="/app/scripts/harbor"
-
-[Container] 2026/01/28 20:49:04.128255 Running command set -e
-# Commands run directly in envgen environment (no docker wrapper needed)
-if [ "$TEST_TYPE" = "oracle" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent oracle --key oracle $TASK
-elif [ "$TEST_TYPE" = "nop" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent nop --key nop $TASK
-elif [ "$TEST_TYPE" = "terminus_gpt" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent terminus-2 --model openai/gpt-5 --run $RUN_NUM --key terminus-gpt5 $TASK
-elif [ "$TEST_TYPE" = "terminus_claude" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent terminus-2 --model anthropic/claude-sonnet-4-5-20250929 --run $RUN_NUM --key terminus-claude-sonnet-4-5 $TASK
-elif [ "$TEST_TYPE" = "consolidate" ]; then
-  python3 /app/scripts/harbor/harbor_batch_difficulty_check.py $TASK
-  /app/scripts/harbor/harbor-print-agent-logs.sh jobs
-fi
-
-Testing with NOP...
-🤖 Testing with nop agent
-========================================
-Running tests for tbench-task with nop
-  1/1 Mean: 0.000 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0:00:02 0:00:00Results written to jobs/github-action-nop_tbench-task_1/result.json
-           nop on adhoc           
-┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
-┃ Metric                 ┃ Value ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
-│ Agent                  │ nop   │
-│ Dataset                │ adhoc │
-│ Trials                 │ 0     │
-│ Errors                 │ 1     │
-│                        │       │
-│ Mean                   │ 0.000 │
-│                        │       │
-│ Exception Distribution │       │
-│   RuntimeError         │ 1     │
-└────────────────────────┴───────┘
-
-ID						RECLAIMABLE	SIZE		LAST ACCESSED
-uvhvkjzp47wjbhyoldvfghj73*              	true 		0B        	1 second ago
-e8s0h8sfqxr135345y2onvny5*              	true 	705B      	1 second ago
-voy44y0xenuohg774z4vbdg4i*              	true 	0B        	1 second ago
-Total:	705B
-Test mean reward for tbench-task with nop: 0.0
-❌ Tests for tbench-task failed with nop (mean_reward: 0.0)
-
-==========================================
-❌ SUMMARY: The following tasks failed with nop:
-- tbench-task
-==========================================
-✅ NOP agent correctly failed all tasks (expected behavior)
-
-Completed 8.6 KiB/8.6 KiB (8.7 KiB/s) with 1 file(s) remaining
-upload: ./nop_1.zip to s3://daas-blobs/codebuild_uploads/autoeval_artifacts/nop_1.zip
-Zipping /root/jobs to /root/nop_1.zip for build artifact directory...
-Uploading /root/nop_1.zip to build artifact directory...
-✓ Build artifacts uploaded to build artifact directory
-
-[Container] 2026/01/28 20:49:21.777060 Phase complete: BUILD State: SUCCEEDED
-[Container] 2026/01/28 20:49:21.777077 Phase context status code:  Message: 
-[Container] 2026/01/28 20:49:21.811195 Entering phase POST_BUILD
-[Container] 2026/01/28 20:49:21.813880 Phase complete: POST_BUILD State: SUCCEEDED
-[Container] 2026/01/28 20:49:21.813895 Phase context status code:  Message: 
-[Container] 2026/01/28 20:49:21.855711 Set report auto-discover timeout to 5 seconds
-[Container] 2026/01/28 20:49:21.855751 Expanding base directory path:  .
-[Container] 2026/01/28 20:49:21.856941 Assembling file list
-[Container] 2026/01/28 20:49:21.856954 Expanding .
-[Container] 2026/01/28 20:49:21.858223 Expanding file paths for base directory .
-[Container] 2026/01/28 20:49:21.858233 Assembling file list
-[Container] 2026/01/28 20:49:21.858236 Expanding **/*
-[Container] 2026/01/28 20:49:21.859581 No matching auto-discover report paths found
-[Container] 2026/01/28 20:49:21.859596 Report auto-discover file discovery took 0.003885 seconds
-[Container] 2026/01/28 20:49:21.859604 Phase complete: UPLOAD_ARTIFACTS State: SUCCEEDED
-[Container] 2026/01/28 20:49:21.859608 Phase context status code:  Message: 
-
-
-=== Build CodeExecutionEnvironment:66e5edab-a5fa-46ea-99f8-2889ac727bdb ===
-[Container] 2026/01/28 20:48:59.860056 Running on CodeBuild On-demand
-[Container] 2026/01/28 20:48:59.860069 Waiting for agent ping
-[Container] 2026/01/28 20:49:01.064935 Waiting for DOWNLOAD_SOURCE
-[Container] 2026/01/28 20:49:01.344297 Phase is DOWNLOAD_SOURCE
-[Container] 2026/01/28 20:49:01.345414 CODEBUILD_SRC_DIR=/codebuild/output/src1664956166/src
-[Container] 2026/01/28 20:49:01.345891 YAML location is /codebuild/readonly/buildspec.yml
-[Container] 2026/01/28 20:49:01.348063 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:49:01.348155 Processing environment variables
-[Container] 2026/01/28 20:49:01.351707 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:49:01.411864 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:49:01.458481 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:49:01.506780 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:49:01.614320 Moving to directory /codebuild/output/src1664956166/src
-[Container] 2026/01/28 20:49:01.614343 Cache is not defined in the buildspec
-[Container] 2026/01/28 20:49:01.653101 Skip cache due to: no paths specified to be cached
-[Container] 2026/01/28 20:49:01.653340 Registering with agent
-[Container] 2026/01/28 20:49:01.694085 Phases found in YAML: 2
-[Container] 2026/01/28 20:49:01.694105  BUILD: 10 commands
-[Container] 2026/01/28 20:49:01.694109  PRE_BUILD: 9 commands
-[Container] 2026/01/28 20:49:01.694394 Phase complete: DOWNLOAD_SOURCE State: SUCCEEDED
-[Container] 2026/01/28 20:49:01.694407 Phase context status code:  Message: 
-[Container] 2026/01/28 20:49:01.807414 Entering phase INSTALL
-[Container] 2026/01/28 20:49:01.846377 Phase complete: INSTALL State: SUCCEEDED
-[Container] 2026/01/28 20:49:01.846397 Phase context status code:  Message: 
-[Container] 2026/01/28 20:49:01.889747 Entering phase PRE_BUILD
-[Container] 2026/01/28 20:49:01.930423 Running command echo "================================================"
-================================================
-
-[Container] 2026/01/28 20:49:01.936181 Running command echo "Running difficulty checks in envgen environment"
-Running difficulty checks in envgen environment
-
-[Container] 2026/01/28 20:49:01.941616 Running command echo "================================================"
-================================================
-
-[Container] 2026/01/28 20:49:01.946928 Running command echo "Starting Docker daemon..."
-Starting Docker daemon...
-
-[Container] 2026/01/28 20:49:01.952103 Running command dockerd --log-level=error >/var/log/dockerd.log 2>&1 &
-
-[Container] 2026/01/28 20:49:01.957510 Running command echo "Waiting for Docker daemon to be ready..."
-Waiting for Docker daemon to be ready...
-
-[Container] 2026/01/28 20:49:01.962771 Running command timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
-
-[Container] 2026/01/28 20:49:05.130130 Running command echo "✓ Docker daemon is ready"
-✓ Docker daemon is ready
-
-[Container] 2026/01/28 20:49:05.135835 Running command docker --version
-Docker version 26.1.5, build a72d7cdbeb991662bf954bfb8d02274124af21e3
-
-[Container] 2026/01/28 20:49:05.151912 Phase complete: PRE_BUILD State: SUCCEEDED
-[Container] 2026/01/28 20:49:05.151932 Phase context status code:  Message: 
-[Container] 2026/01/28 20:49:05.192917 Entering phase BUILD
-[Container] 2026/01/28 20:49:05.193960 Running command mkdir -p ~/harbor_tasks/tbench-task
-
-[Container] 2026/01/28 20:49:05.200642 Running command mkdir -p ~/jobs
-
-[Container] 2026/01/28 20:49:05.206973 Running command cp -r $CODEBUILD_SRC_DIR/* ~/harbor_tasks/tbench-task/
-
-[Container] 2026/01/28 20:49:05.213499 Running command ls -R ~/harbor_tasks/tbench-task
-/root/harbor_tasks/tbench-task:
-app
-environment
-instruction.md
-solution
-task.toml
-tests
-
-/root/harbor_tasks/tbench-task/app:
-data
-timeline_tool.py
-
-/root/harbor_tasks/tbench-task/app/data:
-events.evtx.txt
-mft_records.txt
-prefetch.txt
-
-/root/harbor_tasks/tbench-task/environment:
-Dockerfile
-
-/root/harbor_tasks/tbench-task/solution:
-solve.sh
-
-/root/harbor_tasks/tbench-task/tests:
-test.sh
-test_outputs.py
-
-[Container] 2026/01/28 20:49:05.220099 Running command echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USERNAME" --password-stdin
-WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
-Configure a credential helper to remove this warning. See
-https://docs.docker.com/engine/reference/commandline/login/#credentials-store
-
-Login Succeeded
-
-[Container] 2026/01/28 20:49:05.820625 Running command cd ~ && TASK=tbench-task
-
-[Container] 2026/01/28 20:49:05.826077 Running command echo '{"solvable":"","difficulty":"","agents":"","tests_results":"","text_summary":""}' | aws s3 cp - ${OUTPUT_S3_URI}
-
-[Container] 2026/01/28 20:49:06.568746 Running command export BUILD_ARTIFACT_S3_DIR="s3://daas-blobs/codebuild_uploads/autoeval_artifacts"
-
-[Container] 2026/01/28 20:49:06.574457 Running command export CODEBUILD_SRC_DIR_helper="/app/scripts/harbor"
-
-[Container] 2026/01/28 20:49:06.580154 Running command set -e
-# Commands run directly in envgen environment (no docker wrapper needed)
-if [ "$TEST_TYPE" = "oracle" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent oracle --key oracle $TASK
-elif [ "$TEST_TYPE" = "nop" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent nop --key nop $TASK
-elif [ "$TEST_TYPE" = "terminus_gpt" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent terminus-2 --model openai/gpt-5 --run $RUN_NUM --key terminus-gpt5 $TASK
-elif [ "$TEST_TYPE" = "terminus_claude" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent terminus-2 --model anthropic/claude-sonnet-4-5-20250929 --run $RUN_NUM --key terminus-claude-sonnet-4-5 $TASK
-elif [ "$TEST_TYPE" = "consolidate" ]; then
-  python3 /app/scripts/harbor/harbor_batch_difficulty_check.py $TASK
-  /app/scripts/harbor/harbor-print-agent-logs.sh jobs
-fi
-
-Testing with Oracle
-🤖 Testing with Oracle agent
-========================================
-Running tests for tbench-task with Oracle
-  1/1 Mean: 0.000 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0:00:02 0:00:00Results written to jobs/github-action-oracle_tbench-task_1/result.json
-          oracle on adhoc          
-┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
-┃ Metric                 ┃ Value  ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
-│ Agent                  │ oracle │
-│ Dataset                │ adhoc  │
-│ Trials                 │ 0      │
-│ Errors                 │ 1      │
-│                        │        │
-│ Mean                   │ 0.000  │
-│                        │        │
-│ Exception Distribution │        │
-│   RuntimeError         │ 1      │
-└────────────────────────┴────────┘
-
-ID						RECLAIMABLE	SIZE		LAST ACCESSED
-84tso671lfbbaf8q8c9s2oxma*              	true 		0B        	1 second ago
-ov01wd63hufrtz7quw0vdybf7*              	true 	0B        	1 second ago
-0qi11zbq00r9ljiko3z63hwos*              	true 	705B      	1 second ago
-Total:	705B
-Test mean reward for tbench-task with Oracle: 0.0
-❌ Tests for tbench-task failed with Oracle (mean_reward: 0.0)
-
-==========================================
-❌ SUMMARY: The following tasks failed with Oracle:
-- tbench-task
-==========================================
-
-Completed 9.4 KiB/9.4 KiB (117.2 KiB/s) with 1 file(s) remaining
-upload: ./difficulty_check_artifact.zip to s3://daas-blobs/codebuild_uploads/autoeval_artifacts/difficulty_check_artifact.zip
-Completed 8.6 KiB/8.6 KiB (96.1 KiB/s) with 1 file(s) remaining
-upload: ./oracle_1.zip to s3://daas-blobs/codebuild_uploads/autoeval_artifacts/oracle_1.zip
-❌ Oracle solution failed! Task is not solvable or has issues.
-
-========================================
-📄 PRINTING DEBUG FILES
-========================================
-
-================================================================================
-📄 Printing file: github-action-oracle_tbench-task_1/job.log
-================================================================================
-Trial tbench-task__VfCiZ6x failed: Docker compose command failed for environment tbench-task. Command: docker compose -p tbench-task__vfciz6x -f /opt/venv/lib/python3.12/site-packages/harbor/environments/docker/docker-compose-build.yaml up -d. Return code: 17. Stdout:  main Pulling 
- main Warning pull access denied for hb__tbench-task, repository does not exist or may require 'docker login': denied: requested access to the resource is denied
-#0 building with "default" instance using docker driver
-
-#1 [main internal] load build definition from Dockerfile
-#1 transferring dockerfile: 744B done
-#1 DONE 0.0s
-
-#2 [main internal] load metadata for docker.io/library/python:3.11.9-slim-bookworm
-#2 ...
-
-#3 [main auth] library/python:pull token for registry-1.docker.io
-#3 DONE 0.0s
-
-#2 [main internal] load metadata for docker.io/library/python:3.11.9-slim-bookworm
-#2 DONE 0.9s
-
-#4 [main internal] load .dockerignore
-#4 transferring context: 2B done
-#4 DONE 0.0s
-
-#5 [main internal] load build context
-#5 transferring context: 2B done
-#5 DONE 0.0s
-
-#6 [main 4/6] WORKDIR /app
-#6 CACHED
-
-#7 [main 2/6] RUN apt-get update &&     apt-get install -y --no-install-recommends     curl     && rm -rf /var/lib/apt/lists/*
-#7 CACHED
-
-#8 [main 3/6] RUN curl -LsSf https://astral.sh/uv/0.9.5/install.sh | sh
-#8 CACHED
-
-#9 [main 5/6] COPY app/ /app/
-#9 ERROR: failed to calculate checksum of ref 4a3fd6fb-6ff8-485e-a95f-7b839914c322::tiay5xefok2restb1a533uws3: "/app": not found
-
-#10 [main 1/6] FROM docker.io/library/python:3.11.9-slim-bookworm@sha256:8fb099199b9f2d70342674bd9dbccd3ed03a258f26bbd1d556822c6dfc60c317
-#10 resolve docker.io/library/python:3.11.9-slim-bookworm@sha256:8fb099199b9f2d70342674bd9dbccd3ed03a258f26bbd1d556822c6dfc60c317 0.0s done
-#10 sha256:8fb099199b9f2d70342674bd9dbccd3ed03a258f26bbd1d556822c6dfc60c317 9.12kB / 9.12kB done
-#10 sha256:2856e6af199e8128161abd320575eb9b341f3b76f017b5d0c9cd364f60d8a050 1.94kB / 1.94kB done
-#10 sha256:65a6ce634d975b67ee77c8d0f59248cbcb9d8b8f229d584c3cf5d624038bf963 6.91kB / 6.91kB done
-#10 CANCELED
-------
- > [main 5/6] COPY app/ /app/:
-------
-failed to solve: failed to compute cache key: failed to calculate checksum of ref 4a3fd6fb-6ff8-485e-a95f-7b839914c322::tiay5xefok2restb1a533uws3: "/app": not found
-. Stderr: None. 
-
-================================================================================
-
-========================================END OF PRINTING DEBUG FILES========================================
-
-✅ Jobs and additional files zipped: difficulty_check_artifact.zip
-✅ Jobs uploaded to build artifact directory
-Zipping /root/jobs to /root/oracle_1.zip for build artifact directory...
-Uploading /root/oracle_1.zip to build artifact directory...
-✓ Build artifacts uploaded to build artifact directory
-
-[Container] 2026/01/28 20:49:24.998699 Command did not exit successfully set -e
-# Commands run directly in envgen environment (no docker wrapper needed)
-if [ "$TEST_TYPE" = "oracle" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent oracle --key oracle $TASK
-elif [ "$TEST_TYPE" = "nop" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent nop --key nop $TASK
-elif [ "$TEST_TYPE" = "terminus_gpt" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent terminus-2 --model openai/gpt-5 --run $RUN_NUM --key terminus-gpt5 $TASK
-elif [ "$TEST_TYPE" = "terminus_claude" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent terminus-2 --model anthropic/claude-sonnet-4-5-20250929 --run $RUN_NUM --key terminus-claude-sonnet-4-5 $TASK
-elif [ "$TEST_TYPE" = "consolidate" ]; then
-  python3 /app/scripts/harbor/harbor_batch_difficulty_check.py $TASK
-  /app/scripts/harbor/harbor-print-agent-logs.sh jobs
-fi
- exit status 1
-[Container] 2026/01/28 20:49:25.002852 Phase complete: BUILD State: FAILED
-[Container] 2026/01/28 20:49:25.002871 Phase context status code: COMMAND_EXECUTION_ERROR Message: Error while executing command: set -e
-# Commands run directly in envgen environment (no docker wrapper needed)
-if [ "$TEST_TYPE" = "oracle" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent oracle --key oracle $TASK
-elif [ "$TEST_TYPE" = "nop" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent nop --key nop $TASK
-elif [ "$TEST_TYPE" = "terminus_gpt" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent terminus-2 --model openai/gpt-5 --run $RUN_NUM --key terminus-gpt5 $TASK
-elif [ "$TEST_TYPE" = "terminus_claude" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent terminus-2 --model anthropic/claude-sonnet-4-5-20250929 --run $RUN_NUM --key terminus-claude-sonnet-4-5 $TASK
-elif [ "$TEST_TYPE" = "consolidate" ]; then
-  python3 /app/scripts/harbor/harbor_batch_difficulty_check.py $TASK
-  /app/scripts/harbor/harbor-print-agent-logs.sh jobs
-fi
-. Reason: exit status 1
-[Container] 2026/01/28 20:49:25.042331 Entering phase POST_BUILD
-[Container] 2026/01/28 20:49:25.045230 Phase complete: POST_BUILD State: SUCCEEDED
-[Container] 2026/01/28 20:49:25.045248 Phase context status code:  Message: 
-[Container] 2026/01/28 20:49:25.091882 Set report auto-discover timeout to 5 seconds
-[Container] 2026/01/28 20:49:25.091964 Expanding base directory path:  .
-[Container] 2026/01/28 20:49:25.093354 Assembling file list
-[Container] 2026/01/28 20:49:25.093366 Expanding .
-[Container] 2026/01/28 20:49:25.094815 Expanding file paths for base directory .
-[Container] 2026/01/28 20:49:25.094826 Assembling file list
-[Container] 2026/01/28 20:49:25.094829 Expanding **/*
-[Container] 2026/01/28 20:49:25.096249 No matching auto-discover report paths found
-[Container] 2026/01/28 20:49:25.096269 Report auto-discover file discovery took 0.004387 seconds
-[Container] 2026/01/28 20:49:25.096280 Phase complete: UPLOAD_ARTIFACTS State: SUCCEEDED
-[Container] 2026/01/28 20:49:25.096290 Phase context status code:  Message: 
-
-
-=== Build CodeExecutionEnvironment:35ac4795-aafc-418c-8582-a9b644c98c1a ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:74cd430e-ad99-4d88-b003-968230c556d5 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:c6a92e9d-4973-41de-b187-896e6da59e02 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:94b80a44-d6ab-4dc5-a9ee-433ba7823781 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:76d203ed-6b8b-4b9d-86cb-ee537bb003e1 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:fa149bed-289e-497f-b937-5aa2149cf679 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:2dbd937b-ee9c-4989-9f68-b7d8fd676c9c ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:12402d96-9b70-4e3e-a5bd-ffa0ff1bcd51 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:fce8243b-a63e-4189-a66f-4100c80e3734 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:454100aa-16b9-4052-be28-ae9ce9efc886 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:1d13cb61-1634-4028-9628-00ec1dc0a122 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-This task is not tested with any agents as the Oracle solution failed. Please fix the Oracle solution and re-run the tests.
-
-recover-pgp-key-from-memory-dump_20260128_204617.zip
-b8450dd0-3d9e-47ab-85ad-b69f9a3eaa8f
-
-=== Build CodeExecutionEnvironment:ba362121-f40d-4a3e-9bcd-fc4b24505f7c ===
-Error retrieving logs: Connection closed.
-
-=== Build CodeExecutionEnvironment:8b280cdd-54fb-4ce0-afa1-ac29ac8d9183 ===
-Error retrieving logs: Connection closed.
-
-=== Build CodeExecutionEnvironment:cf355586-d46e-49dd-aaac-02eac07f30e2 ===
-[Container] 2026/01/28 20:49:04.986232 Running on CodeBuild On-demand
-[Container] 2026/01/28 20:49:04.986246 Waiting for agent ping
-[Container] 2026/01/28 20:49:07.194427 Waiting for DOWNLOAD_SOURCE
-[Container] 2026/01/28 20:49:07.478883 Phase is DOWNLOAD_SOURCE
-[Container] 2026/01/28 20:49:07.480123 CODEBUILD_SRC_DIR=/codebuild/output/src4040328018/src
-[Container] 2026/01/28 20:49:07.480606 YAML location is /codebuild/readonly/buildspec.yml
-[Container] 2026/01/28 20:49:07.482933 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:49:07.483029 Processing environment variables
-[Container] 2026/01/28 20:49:07.485793 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:49:07.547599 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:49:07.585572 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:49:07.628273 Setting HTTP client timeout to higher timeout for S3 source
-[Container] 2026/01/28 20:49:07.735281 Moving to directory /codebuild/output/src4040328018/src
-[Container] 2026/01/28 20:49:07.735304 Cache is not defined in the buildspec
-[Container] 2026/01/28 20:49:07.773510 Skip cache due to: no paths specified to be cached
-[Container] 2026/01/28 20:49:07.773774 Registering with agent
-[Container] 2026/01/28 20:49:07.811967 Phases found in YAML: 2
-[Container] 2026/01/28 20:49:07.811987  PRE_BUILD: 9 commands
-[Container] 2026/01/28 20:49:07.812075  BUILD: 10 commands
-[Container] 2026/01/28 20:49:07.812355 Phase complete: DOWNLOAD_SOURCE State: SUCCEEDED
-[Container] 2026/01/28 20:49:07.812377 Phase context status code:  Message: 
-[Container] 2026/01/28 20:49:07.923799 Entering phase INSTALL
-[Container] 2026/01/28 20:49:07.962182 Phase complete: INSTALL State: SUCCEEDED
-[Container] 2026/01/28 20:49:07.962206 Phase context status code:  Message: 
-[Container] 2026/01/28 20:49:08.000648 Entering phase PRE_BUILD
-[Container] 2026/01/28 20:49:08.041448 Running command echo "================================================"
-================================================
-
-[Container] 2026/01/28 20:49:08.045038 Running command echo "Running difficulty checks in envgen environment"
-Running difficulty checks in envgen environment
-
-[Container] 2026/01/28 20:49:08.048335 Running command echo "================================================"
-================================================
-
-[Container] 2026/01/28 20:49:08.051515 Running command echo "Starting Docker daemon..."
-Starting Docker daemon...
-
-[Container] 2026/01/28 20:49:08.054653 Running command dockerd --log-level=error >/var/log/dockerd.log 2>&1 &
-
-[Container] 2026/01/28 20:49:08.058064 Running command echo "Waiting for Docker daemon to be ready..."
-Waiting for Docker daemon to be ready...
-
-[Container] 2026/01/28 20:49:08.061324 Running command timeout 30 sh -c 'until docker info >/dev/null 2>&1; do sleep 1; done'
-
-[Container] 2026/01/28 20:49:10.916554 Running command echo "✓ Docker daemon is ready"
-✓ Docker daemon is ready
-
-[Container] 2026/01/28 20:49:10.919861 Running command docker --version
-Docker version 26.1.5, build a72d7cdbeb991662bf954bfb8d02274124af21e3
-
-[Container] 2026/01/28 20:49:10.932928 Phase complete: PRE_BUILD State: SUCCEEDED
-[Container] 2026/01/28 20:49:10.932944 Phase context status code:  Message: 
-[Container] 2026/01/28 20:49:10.974093 Entering phase BUILD
-[Container] 2026/01/28 20:49:10.975253 Running command mkdir -p ~/harbor_tasks/tbench-task
-
-[Container] 2026/01/28 20:49:10.979271 Running command mkdir -p ~/jobs
-
-[Container] 2026/01/28 20:49:10.983129 Running command cp -r $CODEBUILD_SRC_DIR/* ~/harbor_tasks/tbench-task/
-
-[Container] 2026/01/28 20:49:10.987453 Running command ls -R ~/harbor_tasks/tbench-task
-/root/harbor_tasks/tbench-task:
-app
-environment
-instruction.md
-solution
-task.toml
-tests
-
-/root/harbor_tasks/tbench-task/app:
-ciphertext.asc
-extract_key.sh
-memory.dump
-
-/root/harbor_tasks/tbench-task/environment:
-Dockerfile
-
-/root/harbor_tasks/tbench-task/solution:
-solve.sh
-
-/root/harbor_tasks/tbench-task/tests:
-test.sh
-test_outputs.py
-
-[Container] 2026/01/28 20:49:10.991226 Running command echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USERNAME" --password-stdin
-WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
-Configure a credential helper to remove this warning. See
-https://docs.docker.com/engine/reference/commandline/login/#credentials-store
-
-Login Succeeded
-
-[Container] 2026/01/28 20:49:11.603215 Running command cd ~ && TASK=tbench-task
-
-[Container] 2026/01/28 20:49:11.606628 Running command echo '{"solvable":"","difficulty":"","agents":"","tests_results":"","text_summary":""}' | aws s3 cp - ${OUTPUT_S3_URI}
-
-[Container] 2026/01/28 20:49:12.334323 Running command export BUILD_ARTIFACT_S3_DIR="s3://daas-blobs/codebuild_uploads/autoeval_artifacts"
-
-[Container] 2026/01/28 20:49:12.337779 Running command export CODEBUILD_SRC_DIR_helper="/app/scripts/harbor"
-
-[Container] 2026/01/28 20:49:12.341072 Running command set -e
-# Commands run directly in envgen environment (no docker wrapper needed)
-if [ "$TEST_TYPE" = "oracle" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent oracle --key oracle $TASK
-elif [ "$TEST_TYPE" = "nop" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent nop --key nop $TASK
-elif [ "$TEST_TYPE" = "terminus_gpt" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent terminus-2 --model openai/gpt-5 --run $RUN_NUM --key terminus-gpt5 $TASK
-elif [ "$TEST_TYPE" = "terminus_claude" ]; then
-  python3 /app/scripts/harbor/harbor_agent_run.py --agent terminus-2 --model anthropic/claude-sonnet-4-5-20250929 --run $RUN_NUM --key terminus-claude-sonnet-4-5 $TASK
-elif [ "$TEST_TYPE" = "consolidate" ]; then
-  python3 /app/scripts/harbor/harbor_batch_difficulty_check.py $TASK
-  /app/scripts/harbor/harbor-print-agent-logs.sh jobs
-fi
-
-Testing with NOP...
-🤖 Testing with nop agent
-========================================
-Running tests for tbench-task with nop
-  1/1 Mean: 0.000 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 0:00:01 0:00:00Results written to jobs/github-action-nop_tbench-task_1/result.json
-           nop on adhoc           
-┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
-┃ Metric                 ┃ Value ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
-│ Agent                  │ nop   │
-│ Dataset                │ adhoc │
-│ Trials                 │ 0     │
-│ Errors                 │ 1     │
-│                        │       │
-│ Mean                   │ 0.000 │
-│                        │       │
-│ Exception Distribution │       │
-│   RuntimeError         │ 1     │
-└────────────────────────┴───────┘
-
-ID						RECLAIMABLE	SIZE		LAST ACCESSED
-x5x8sotlfkymump9sml3s641v*              	true 		0B        	1 second ago
-0euoe5lqug8p6c1z1taoadzaz*              	true 	561B      	1 second ago
-n2973c2563malunvcb1ol3l1a*              	true 	0B        	1 second ago
-Total:	561B
-Test mean reward for tbench-task with nop: 0.0
-❌ Tests for tbench-task failed with nop (mean_reward: 0.0)
-
-==========================================
-❌ SUMMARY: The following tasks failed with nop:
-- tbench-task
-==========================================
-✅ NOP agent correctly failed all tasks (expected behavior)
-
-Completed 8.6 KiB/8.6 KiB (111.1 KiB/s) with 1 file(s) remaining
-upload: ./nop_1.zip to s3://daas-blobs/codebuild_uploads/autoeval_artifacts/nop_1.zip
-Zipping /root/jobs to /root/nop_1.zip for build artifact directory...
-Uploading /root/nop_1.zip to build artifact directory...
-✓ Build artifacts uploaded to build artifact directory
-
-[Container] 2026/01/28 20:49:29.404233 Phase complete: BUILD State: SUCCEEDED
-[Container] 2026/01/28 20:49:29.404251 Phase context status code:  Message: 
-[Container] 2026/01/28 20:49:29.443811 Entering phase POST_BUILD
-[Container] 2026/01/28 20:49:29.446463 Phase complete: POST_BUILD State: SUCCEEDED
-[Container] 2026/01/28 20:49:29.446487 Phase context status code:  Message: 
-[Container] 2026/01/28 20:49:29.498985 Set report auto-discover timeout to 5 seconds
-[Container] 2026/01/28 20:49:29.499036 Expanding base directory path:  .
-[Container] 2026/01/28 20:49:29.500333 Assembling file list
-[Container] 2026/01/28 20:49:29.500343 Expanding .
-[Container] 2026/01/28 20:49:29.501728 Expanding file paths for base directory .
-[Container] 2026/01/28 20:49:29.501744 Assembling file list
-[Container] 2026/01/28 20:49:29.501748 Expanding **/*
-[Container] 2026/01/28 20:49:29.503264 No matching auto-discover report paths found
-[Container] 2026/01/28 20:49:29.503283 Report auto-discover file discovery took 0.004298 seconds
-[Container] 2026/01/28 20:49:29.503294 Phase complete: UPLOAD_ARTIFACTS State: SUCCEEDED
-[Container] 2026/01/28 20:49:29.503304 Phase context status code:  Message: 
-
-
-=== Build CodeExecutionEnvironment:b4b2c419-cdf7-4ffb-bb34-682d6d8750a5 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:639a0896-cc99-4f89-8e7d-5d6285f2417c ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:6a6a79fe-9177-4471-894c-f84b2d6a0b82 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:e76d6f42-c6dd-461a-8af8-f167824a2627 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:0e0174c9-ee60-446c-9eab-7834df5857ea ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:8deeb2b2-3149-4e5c-9403-06e50dec4635 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:3a01df15-6e61-43b1-adca-ee8559261e4c ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:464e720b-e4e0-415a-a36a-0a6be27b3538 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:52b09bed-49a6-4c6a-b0f5-b19d79511a86 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:d3467900-dc65-4b3e-8791-b6dd94dc3d7e ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-=== Build CodeExecutionEnvironment:8f2f2610-3218-4430-a2fd-7c0b2f4142e6 ===
-Error retrieving logs: An error occurred (NoSuchKey) when calling the GetObject operation: The specified key does not exist.
-
-
-This task is not tested with any agents as the Oracle solution failed. Please fix the Oracle solution and re-run the tests.
-
-
-configure-cli-emulators-profiles.zip
 610ca460-4736-4f29-ab89-8e367dd35dcf
+configure-cli-emulators-profiles_20260224_215050.zi
 
-This task is not tested with any agents as the Oracle solution failed. Please fix the Oracle solution and re-run the tests.
+================================================================================
+        REVIEW REPORT: Configure Cloud CLIs for Local Emulators
+================================================================================
+
+Status:        ⚠️ WARNING
+Task Location: /root/harbor_tasks/tbench-task
+
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+
+This task requires agents to debug and fix three misconfigured cloud CLI
+profile scripts (AWS/LocalStack, gcloud/Pub-Sub emulator, Azure/Azurite) so
+that they configure named profiles in isolation—without clobbering defaults—
+and produce verified output files listing cloud resources. The oracle solution
+patches four starter scripts via inline Python regex, then runs configure and
+verify scripts end-to-end. The three-test suite validates profile isolation,
+config file content, and a full create-and-list E2E flow across all three
+cloud providers.
+
+================================================================================
+                              WARNINGS ⚠️
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Behavior Gap: Region in /root/.aws/credentials Not Verified by Tests
+--------------------------------------------------------------------------------
+
+File:    tbench-task/tests/test_outputs.py (lines 92–95)
+Problem: instruction.md explicitly marks it CRITICAL that region = us-east-1
+         appears in BOTH /root/.aws/credentials AND /root/.aws/config for the
+         localstack profile. The test checks region only in the config file;
+         an agent that omits region from credentials would pass all tests
+         while violating the stated requirement.
+
+Current code:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  creds = read_text("/root/.aws/credentials")                                │
+│  assert "[localstack]" in creds                                             │
+│  assert "aws_access_key_id" in creds                                        │
+│  assert "aws_secret_access_key" in creds                                    │
+│  # No region check here                                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Suggested fix:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  assert "region" in creds, \                                                │
+│      "Region must also appear in credentials file for localstack profile"   │
+│  assert "us-east-1" in creds, \                                             │
+│      "Region must be us-east-1 in credentials file"                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Explanation: instruction.md states "AWS CLI requires region in both locations
+for proper profile isolation" and calls it CRITICAL. The test should enforce
+this invariant so agents cannot pass with a partial implementation.
+
+--------------------------------------------------------------------------------
+2. Unreplaced Placeholder in solve.sh
+--------------------------------------------------------------------------------
+
+File:    tbench-task/solution/solve.sh (line 2)
+Problem: Line 2 contains `# CANARY_STRING_PLACEHOLDER`, which appears to be
+         an unfilled template token. If it was meant to be a unique canary
+         string (to detect agents that copy the oracle verbatim), it was
+         never substituted with an actual value, leaving the anti-cheating
+         measure incomplete.
+
+Current code:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  #!/bin/bash                                                                │
+│  # CANARY_STRING_PLACEHOLDER                                                │
+│  set -euo pipefail                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Suggested fix: Either replace with a real unique canary string or remove the
+comment entirely if no anti-copy detection is needed.
+
+Explanation: A literal placeholder string provides no canary protection and
+signals an incomplete authoring step.
+
+================================================================================
+                             SUGGESTIONS 💡
+================================================================================
+
+--------------------------------------------------------------------------------
+1. WORKDIR Guard Missing from test.sh
+--------------------------------------------------------------------------------
+
+File:    tbench-task/tests/test.sh (line 1–13)
+
+Current approach: test.sh installs pytest and runs immediately without
+verifying the container's working directory.
+
+Suggested improvement:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  if [ "$PWD" = "/" ]; then                                                  │
+│      echo "Error: No working directory set. Add WORKDIR to Dockerfile."    │
+│      exit 1                                                                 │
+│  fi                                                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Rationale: The standard tbench test.sh template includes this guard to catch
+Dockerfile misconfiguration early. The Dockerfile correctly sets WORKDIR /app,
+so this is low risk—but adding the guard follows best practice and would
+surface any future WORKDIR regressions immediately.
+
+--------------------------------------------------------------------------------
+2. Misleading Dockerfile Comment Lists pytest as Installed Package
+--------------------------------------------------------------------------------
+
+File:    tbench-task/environment/Dockerfile (lines 43–46)
+
+Current approach: The comment block above the pip install run step lists
+"pytest: used by verifier (avoid test-time network)" as if pytest were
+included, but the actual install command omits it. pytest is correctly
+installed at test time via test.sh instead.
+
+Suggested improvement: Remove the pytest line from the comment, or update it
+to clarify that pytest is intentionally installed by test.sh rather than the
+image:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  # - awscli: AWS S3 endpoint client                                         │
+│  # - moto[server]: lightweight S3-compatible mock                           │
+│  # - azure-cli: Azurite storage commands                                    │
+│  # (pytest installed at test time by tests/test.sh)                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Rationale: The current comment creates confusion about what is actually
+installed in the image. Clear comments reduce reviewer and contributor error.
+
+================================================================================
+                            OVERALL ASSESSMENT
+================================================================================
+
+This is a realistic, well-scoped system-administration task with detailed
+instructions, pinned dependencies throughout, and a solid three-function test
+suite that covers isolation, persistence, and E2E verification for all three
+cloud providers. The oracle solution is non-trivial (script patching via regex)
+and correctly avoids hardcoded answers. The primary concern is a test coverage
+gap: the instruction explicitly requires region in both AWS credential files,
+but only the config file is tested, allowing a partial implementation to earn
+full reward.
+
+Key Strengths:
+  ✓ Comprehensive, unambiguous instruction with exact config values specified
+  ✓ All Python/npm/apt dependencies pinned; test.sh reward path always written
+  ✓ Strong profile-isolation anti-cheating via seed_defaults() sentinel values
+
+Key Weaknesses:
+  ✗ Test does not verify region in /root/.aws/credentials despite instruction
+    calling it a CRITICAL requirement
+  ✗ CANARY_STRING_PLACEHOLDER in solve.sh indicates an incomplete authoring step
+
+Evaluates: Cloud CLI configuration, profile isolation, script debugging,
+           multi-service emulator orchestration
+
+================================================================================
+  RECOMMENDATION: ⚠️ NEEDS REVISION
+
+  Add the missing region assertion for /root/.aws/credentials and resolve the
+  CANARY_STRING_PLACEHOLDER artifact in solve.sh before deployment.
+================================================================================
 
 
-
-migrate-flask-auth-sha1-to-argon2id_20260223_165331.zip
 18cf4bdc-d28d-4044-b904-28bd02e15ad9
+migrate-flask-auth-sha1-to-argon2id_20260224_230854.zip
 
-❌ fail - typos: Minor typo in tests/test.sh: 'source $HOME/.local/bin/env' likely references a non-existent file (uv typically adds to PATH rather than creating this file). Otherwise filenames/paths look consistent.
+================================================================================
+              REVIEW REPORT: Migrate Flask Auth Service from SHA-1 to Argon2id
+================================================================================
 
-❌ fail - behavior_in_tests: Tests miss several specified requirements: no check for automatic rehash-on-login when Argon2 params are outdated; no positive SHA-1 backward-compatibility verification (only failure case); idempotency of CLI is only lightly checked (does not ensure no duplicate failed_users or stable migrated_count); CSV trimming/
+Status:        ✅ PASS
+Task Location: /root/harbor_tasks/tbench-task
 
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+
+This task requires agents to refactor a legacy Flask authentication service
+from unsalted SHA-1 to Argon2id password hashing with per-user salts,
+implement automatic rehash-on-login for outdated parameters, and build a
+bulk-migration CLI that validates credentials against a provided CSV and
+produces a structured audit report. The oracle solution correctly rewrites
+both auth_service.py and migrate.py, then runs the migration. The test
+suite is extensive (17 tests) and validates migration counts, audit schema,
+Argon2id hash format and parameter correctness, per-user salt uniqueness,
+backward SHA-1 compatibility, rehash-on-login behavior, and idempotency.
+
+================================================================================
+                             SUGGESTIONS 💡
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Unused `pandas` Dependency in Dockerfile
+--------------------------------------------------------------------------------
+
+File:    tbench-task/environment/Dockerfile (lines 12-15)
+
+Current approach: The Dockerfile installs pandas==2.2.3 alongside Flask and
+argon2-cffi, but neither the oracle solution nor the starter code uses pandas;
+both use Python's built-in csv module for CSV parsing.
+
+Suggested improvement:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  RUN pip install --no-cache-dir \                                           │
+│      Flask==3.0.0 \                                                         │
+│      argon2-cffi==23.1.0                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Rationale: Removing the unused pandas dependency reduces image build time
+(~50 MB) and size. Agents can still solve the CSV parsing requirement
+with the standard library. If pandas is intentionally provided as an
+agent hint, a comment to that effect would clarify the design choice.
+
+--------------------------------------------------------------------------------
+2. Hardcoded PYTHONPATH in Test Subprocess Calls
+--------------------------------------------------------------------------------
+
+File:    tbench-task/tests/test_outputs.py (lines 172, 241, 279, 387, 453)
+
+Current approach: Five tests that spawn the Flask service as a subprocess pass
+a hardcoded PYTHONPATH pointing to Python 3.11 site-packages:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  env={**os.environ, "PYTHONPATH":                                           │
+│      "/usr/local/lib/python3.11/site-packages:"                            │
+│      "/usr/lib/python3.11/site-packages"}                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Suggested improvement:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  # Let the subprocess inherit the current environment without               │
+│  # overriding PYTHONPATH, or derive the path dynamically:                  │
+│  import sysconfig                                                           │
+│  site_pkgs = sysconfig.get_paths()["purelib"]                              │
+│  env={**os.environ, "PYTHONPATH": site_pkgs}                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Rationale: The current paths are consistent with the python:3.11-slim-bookworm
+base image, but if the base image is ever bumped to a newer Python minor
+version, these hardcoded paths would silently prevent Flask and argon2-cffi
+from being found by the subprocess, causing confusing failures.
+
+--------------------------------------------------------------------------------
+3. Agent Run Artifacts Directory Included in Task Root
+--------------------------------------------------------------------------------
+
+File:    tbench-task/tbench-task-terminus-2-gpt-5/ (directory)
+
+Current approach: The task directory contains a full benchmark run artifact
+tree (config.json, job.log, agent episodes, verifier logs, reward.txt)
+from a prior evaluation run against this task.
+
+Suggested improvement: Remove the tbench-task-terminus-2-gpt-5/ directory
+before submitting the task to the benchmark repository.
+
+Rationale: These artifacts have no role in task execution—the harness
+provisions a clean container from the Dockerfile—but they inflate the
+repository footprint, add noise for reviewers, and could expose internal
+agent trajectory information unnecessarily.
+
+================================================================================
+                            OVERALL ASSESSMENT
+================================================================================
+
+This is a well-crafted security-engineering task with thorough instructions,
+a fully working oracle solution, and an unusually comprehensive test suite
+that covers not only happy-path migration but also idempotency, parameter
+validation, per-user salt uniqueness, backward SHA-1 compatibility, and
+the nuanced rehash-on-login flow. No critical or functional issues were
+found; the three suggestions above are minor polish items.
+
+Key Strengths:
+  ✓ 17 tests with clear, informative docstrings and excellent behavior
+    coverage — every requirement in instruction.md has a corresponding
+    test assertion
+  ✓ Detailed instruction.md including exact JSON schemas, API contracts,
+    per-field data types, and explicit edge cases (eve's wrong password,
+    idempotency requirement)
+  ✓ Oracle solution is non-trivial, computes results from data, and
+    exercises the full stack (migration CLI + Flask service)
+
+Key Weaknesses:
+  ✗ Minor unused dependency (pandas) inflates the Docker image
+  ✗ Agent run artifacts should be stripped before task submission
+
+Evaluates: Security refactoring, password hashing best practices,
+           CLI tool implementation, Flask API development
+
+================================================================================
+  RECOMMENDATION: ✅ READY TO USE
+
+  The task is functionally complete and meets all Terminal-Bench 2.0
+  requirements. Address the artifact directory before final submission;
+  the remaining suggestions are optional improvements.
+================================================================================
+
+6c7c7951-203c-4cb6-848f-18ce355226c0
+configure-openssh-ca-only-proxyjump_20260224_234901.zip
+
+================================================================================
+            REVIEW REPORT: Configure OpenSSH CA Bastion with
+                           ProxyJump & ControlMaster
+================================================================================
+
+Status:        ❌ FAIL
+Task Location: /root/harbor_tasks/tbench-task
+
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+
+This task requires agents to configure a full SSH Certificate Authority
+infrastructure with two local sshd instances (a bastion on port 2222 and an
+internal host on port 2223), wiring them to trust only CA-signed certificates,
+serve host certificates, and be reachable via ProxyJump with ControlMaster
+multiplexing. The solution generates Ed25519 CA keys, signs all host and user
+keys, writes correct sshd_config files, populates and hashes known_hosts, and
+smoke-tests the result with `sshd -t`. The test suite verifies file presence,
+config content, client parameters, known_hosts format, and performs live SSH
+and SCP connections through the ProxyJump path—including rejection tests for
+unsigned keys and password auth.
 
 ================================================================================
                             CRITICAL ISSUES ❌
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Missing `custom_docker_compose = true` in task.toml
+--------------------------------------------------------------------------------
+
+File:    tbench-task/task.toml ([metadata] section)
+Problem: environment/docker-compose.yaml exists but task.toml does not declare
+         custom_docker_compose = true. Without this flag the harness will
+         attempt to build the Dockerfile directly using environment/ as the
+         build context. The Dockerfile contains `COPY app /app/` where `app/`
+         lives one level above environment/ — so a direct build will fail
+         because that path is outside the build context. The docker-compose.yaml
+         explicitly sets `context: ${CONTEXT_DIR}/..` to work around this,
+         meaning the compose file is load-bearing and must be declared.
+
+Current code:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  [metadata]                                                                 │
+│  author_name = "Snorkel Contributors"                                       │
+│  author_email = "eng@snorkel.ai"                                            │
+│  difficulty = "hard"                                                        │
+│  category = "security"                                                      │
+│  tags = ["ssh", "certificates", "proxyjump", "controlmaster", "linux"]     │
+│  expert_time_estimate_min = 150                                             │
+│  junior_time_estimate_min = 300                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Required fix:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  [metadata]                                                                 │
+│  author_name = "Snorkel Contributors"                                       │
+│  author_email = "eng@snorkel.ai"                                            │
+│  difficulty = "hard"                                                        │
+│  category = "security"                                                      │
+│  tags = ["ssh", "certificates", "proxyjump", "controlmaster", "linux"]     │
+│  expert_time_estimate_min = 150                                             │
+│  junior_time_estimate_min = 300                                             │
+│  custom_docker_compose = true                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Explanation: The harness only uses docker-compose.yaml when
+             custom_docker_compose = true is set. Because the compose file sets
+             context to ${CONTEXT_DIR}/.. (the task root) the COPY app /app/
+             instruction can locate the app/ directory. A direct Dockerfile
+             build would fail at COPY, making the entire task unrunnable.
+             is_multi_container is not required because only one service
+             (main) is defined.
+
+================================================================================
+                              WARNINGS ⚠️
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Agent-Facing Constraint References Internal Harness Directories
+--------------------------------------------------------------------------------
+
+File:    tbench-task/instruction.md (Constraints section)
+Problem: The constraint "Do not copy `tests/` or `solution/` into the runtime
+         image." is listed in the Constraints section that agents read. During
+         agent execution these directories do not exist inside the container
+         (the harness mounts them only at verification time), so the constraint
+         can never be violated and its presence reveals internal harness
+         implementation details unnecessarily.
+
+Current approach: Constraint is listed alongside legitimate agent-facing rules
+                  such as "No network access" and "Keep ports fixed."
+
+Suggested fix: Remove this bullet from the Constraints section. The harness
+               already enforces this separation; no agent-facing constraint is
+               needed.
+
+Explanation: Exposing the existence of `tests/` and `solution/` directories
+             in agent instructions leaks implementation details and may confuse
+             agents into attempting to access paths that do not exist during
+             their execution window.
+
+--------------------------------------------------------------------------------
+2. Unfilled Canary-String Placeholder in solve.sh
+--------------------------------------------------------------------------------
+
+File:    tbench-task/solution/solve.sh (line 2)
+Problem: The literal comment `# CANARY_STRING_PLACEHOLDER` appears to be an
+         unfilled template artifact. If this was intended to embed a unique
+         secret string for detecting solution leakage (a common anti-cheating
+         technique), the placeholder was never replaced with an actual value,
+         rendering the canary inert.
+
+Current code:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  #!/bin/bash                                                                │
+│  # CANARY_STRING_PLACEHOLDER                                                │
+│  set -euo pipefail                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Suggested fix: Either replace the placeholder with a unique random string
+               (e.g., `# CANARY: a7f3c91d-4b2e-4f8a-9c6d-1e2b3f4a5d6c`)
+               and add a corresponding test that would fail if the agent echoes
+               that string as its answer, or remove the comment entirely if no
+               canary mechanism is implemented.
+
+Explanation: A canary comment that still says "PLACEHOLDER" provides no
+             anti-cheating value and may cause confusion during task
+             maintenance.
+
+================================================================================
+                             SUGGESTIONS 💡
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Migrate test.sh to the Standard uv-Based Format
+--------------------------------------------------------------------------------
+
+File:    tbench-task/tests/test.sh (lines 7-10)
+
+Current approach: test.sh installs pytest via `pip3 install --break-system-
+                  packages`, relying on python3-pip being pre-installed in the
+                  Docker image. This also requires python3-pip (and python3-venv,
+                  which goes unused) in the Dockerfile as implicit test
+                  infrastructure dependencies.
+
+Suggested improvement:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  apt-get update -qq && apt-get install -y -qq curl                         │
+│  curl -LsSf https://astral.sh/uv/0.7.13/install.sh | sh                   │
+│  source $HOME/.local/bin/env                                               │
+│                                                                             │
+│  uv venv .tbench-testing                                                   │
+│  source .tbench-testing/bin/activate                                       │
+│  uv pip install pytest==8.3.3                                              │
+│                                                                             │
+│  uv run python -m pytest -q -rA /tests/test_outputs.py                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Rationale: This removes python3-pip and python3-venv from the Dockerfile
+           (keeping test infrastructure out of the agent image), aligns with
+           the recommended standard format, and uses an isolated venv so
+           pytest cannot conflict with any packages the agent installs.
+
+================================================================================
+                            OVERALL ASSESSMENT
+================================================================================
+
+This is a high-quality, realistic task covering a genuinely complex area of
+systems administration: SSH certificate authorities, ProxyJump tunneling, and
+ControlMaster multiplexing. The instruction is precise and technically accurate,
+the solution correctly generates all required CA material and configurations,
+and the test suite combines static config checks with live end-to-end SSH and
+SCP verification plus explicit rejection tests for unsigned keys and password
+auth. The single blocking problem—missing custom_docker_compose = true—would
+prevent the task from building at all on the harbor harness, since the compose
+file's non-standard build context is essential for the COPY instruction to
+locate app/.
+
+Key Strengths:
+  ✓ End-to-end live SSH/SCP tests and signed-key rejection tests provide
+    strong behavioral coverage with meaningful anti-cheating properties
+  ✓ All dependencies (apt packages, pip, Docker base image) are fully pinned
+    to exact versions
+  ✓ Test functions carry informative docstrings and cover every major
+    requirement stated in instruction.md
+
+Key Weaknesses:
+  ✗ Missing custom_docker_compose = true causes the harness to attempt a
+    direct Dockerfile build that fails at COPY app /app/
+  ✗ Agent-facing constraints mention internal harness directories (tests/,
+    solution/) that are irrelevant and invisible to agents at runtime
+
+Evaluates: SSH certificate authority management, sshd hardening and
+           configuration, SSH ProxyJump tunneling, known_hosts management
+           and hashing
+
+================================================================================
+  RECOMMENDATION: ❌ REQUIRES FIXES
+
+  Add custom_docker_compose = true to task.toml [metadata] before deployment;
+  without it the task cannot build. The two warnings are straightforward
+  cleanup items that can be addressed in the same pass.
+================================================================================
+
+
+ef6cbf3f-0e61-4515-835f-5147ed8dda16
+configure-bazel-remote-cache_20260225_021924.zip
+
+================================================================================
+          REVIEW REPORT: Configure Bazel Remote Cache and Verify Cache Hit Rate
+================================================================================
+
+Status:        ❌ FAIL
+Task Location: /root/harbor_tasks/tbench-task
+
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+
+This task requires agents to configure a Bazel workspace to use a local HTTP
+remote cache server (bazel-remote), build the mixed C++/Java project to prime
+the cache, simulate a fresh checkout via `bazel clean --expunge`, and rebuild
+to verify >95% remote cache hits with zero compile actions — writing results to
+/app/cache_verification.json. The oracle solution implements this via bash with
+inline Python that parses both Bazel's build event protocol (BEP) output and
+its human-readable summary. The test suite contains 7 well-structured pytest
+functions that validate file existence, JSON schema correctness, cache hit
+thresholds, zero compile actions, .bazelrc configuration, and internal
+statistics consistency. However, evaluation confirms the container fails to
+start, blocking all runs.
+
+================================================================================
+                              CRITICAL ISSUES ❌
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Container Exits with Code 1 at Startup — Environment Never Becomes Ready
+--------------------------------------------------------------------------------
+
+File:    tbench-task/environment/docker-compose.yaml + Dockerfile
+Problem: The evaluation run (tbench-task-terminus-2-gpt-5/) confirmed that the
+         container exits with code 1 immediately after starting, causing the
+         harbor framework to throw a RuntimeError and abort the trial before
+         any agent or oracle code can execute. The Dockerfile defines a custom
+         ENTRYPOINT (/entrypoint.sh) that starts bazel-remote in the
+         background, then calls `exec "$@"`. The docker-compose.yaml overrides
+         CMD with `["sh", "-c", "sleep infinity"]`. With `set -e` in the
+         entrypoint, any startup failure causes an immediate exit. Additionally,
+         task.toml is missing the `has_custom_cmd = true` flag that signals to
+         the harbor framework that the main service uses a custom startup
+         command — its absence may cause lifecycle mismanagement.
+
+Current code:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  # task.toml [metadata] — missing flag:                                     │
+│  custom_docker_compose = true                                               │
+│  # has_custom_cmd is absent                                                 │
+│                                                                             │
+│  # Dockerfile — custom entrypoint with set -e:                              │
+│  ENTRYPOINT ["/entrypoint.sh"]                                              │
+│  CMD ["sleep", "infinity"]                                                  │
+│                                                                             │
+│  # Evaluation evidence — trial.log:                                         │
+│  Container tbench-task__xb7ral9-main-1  Waiting                            │
+│  container tbench-task__xb7ral9-main-1 exited (1)                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Required fix:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  # 1. Add flag to task.toml [metadata]:                                     │
+│  custom_docker_compose = true                                               │
+│  has_custom_cmd = true                                                      │
+│                                                                             │
+│  # 2. Add healthcheck to docker-compose.yaml main service so --wait        │
+│  # can detect readiness instead of relying on "running" state:             │
+│  healthcheck:                                                               │
+│    test: ["CMD", "nc", "-z", "localhost", "8080"]                          │
+│    interval: 5s                                                             │
+│    timeout: 3s                                                              │
+│    retries: 12                                                              │
+│    start_period: 10s                                                        │
+│                                                                             │
+│  # 3. Investigate /tmp/bazel-remote.log inside the container to confirm    │
+│  # bazel-remote starts cleanly; remove `set -e` from entrypoint or add    │
+│  # explicit error handling for the background daemon launch.               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Explanation: `docker compose up --wait` fails when the container exits before
+reaching "running" (or "healthy") state. The `set -e` flag inside the
+entrypoint causes an immediate exit if any command—including implicit failures
+around the background daemon—returns non-zero. Adding `has_custom_cmd = true`
+ensures the harness handles the container lifecycle correctly, and adding a
+healthcheck on port 8080 allows `--wait` to confirm bazel-remote is actually
+serving before declaring the environment ready. Without these fixes, neither
+oracle runs nor agent trials can execute at all.
+
+================================================================================
+                              WARNINGS ⚠️
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Unfilled Template Placeholder in solve.sh
+--------------------------------------------------------------------------------
+
+File:    tbench-task/solution/solve.sh (line 2)
+Problem: Line 2 contains a literal `# CANARY_STRING_PLACEHOLDER` comment,
+         which is a generation-pipeline artifact that was never substituted
+         with an actual unique canary value.
+
+Current approach:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  #!/bin/bash                                                                │
+│  # CANARY_STRING_PLACEHOLDER                                                │
+│  set -euo pipefail                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Suggested fix: Replace the placeholder with an actual unique canary string, or
+remove the line entirely if no canary mechanism is implemented in the tests.
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  #!/bin/bash                                                                │
+│  # CANARY: a3f91c2e-bazel-remote-cache-task                                │
+│  set -euo pipefail                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Explanation: A "PLACEHOLDER" suffix strongly indicates the canary substitution
+step was skipped during task finalization. While the solution file is not
+visible to agents, leaving an unfilled placeholder suggests the task was not
+fully finalized and undermines confidence in the overall pipeline completion.
+
+================================================================================
+                             SUGGESTIONS 💡
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Remove Generation Artifacts and Evaluation Result Files
+--------------------------------------------------------------------------------
+
+File:    tbench-task/ (task root directory)
+
+Current approach: The task root contains several scaffolding and evaluation
+artifact files alongside the actual task components:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  NOTES.md                                                                   │
+│  configure-bazel-remote-cache.DONE.md                                       │
+│  configure-bazel-remote-cache.QC.md                                         │
+│  configure-bazel-remote-cache.STATE.md                                      │
+│  tbench-task-terminus-2-gpt-5/  (full evaluation results directory)        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Rationale: These files are development and pipeline artifacts, not task
+components. The evaluation results directory (tbench-task-terminus-2-gpt-5/)
+in particular exposes internal trial data (job.log, result.json, exception.txt)
+and the confirmed exit-code-1 failure. All of these should be removed or
+gitignored before the task is submitted for use.
+
+================================================================================
+                            OVERALL ASSESSMENT
+================================================================================
+
+This task targets a realistic, non-trivial DevOps skill (Bazel remote cache
+configuration and BEP parsing) with a well-written instruction, a clear JSON
+output schema, and a solid 7-test suite that covers all specified requirements
+with informative docstrings. However, the task is completely non-functional as
+submitted: the evaluation run confirms the container exits with code 1 at
+startup, meaning neither agents nor the oracle can execute. This must be
+resolved before the task can be used.
+
+Key Strengths:
+  ✓ Detailed instruction with fully-defined output schema and technical notes
+  ✓ Well-structured test suite with informative docstrings and good coverage
+  ✓ Genuine, non-hardcoded oracle solution with dual BEP + summary parsing
+
+Key Weaknesses:
+  ✗ Container crashes at startup, blocking all evaluation (confirmed by run)
+  ✗ Missing has_custom_cmd flag and no healthcheck for custom-entrypoint design
+  ✗ Unfilled generation-pipeline placeholder left in solve.sh
+
+Evaluates: Bazel build system configuration, remote caching, build event
+           protocol parsing, bash/Python scripting for DevOps workflows
+
+================================================================================
+  RECOMMENDATION: ❌ REQUIRES FIXES
+
+  The container startup failure makes this task entirely non-executable.
+  Fix the entrypoint/healthcheck issue, add has_custom_cmd = true to
+  task.toml, and clean up artifact files before resubmission.
+================================================================================
+
+
+55e20de3-8b5a-4627-806c-f8a59a24efd9
+migrate-flask-auth-sha1-to-argon2id_20260224_200531.zip
+
+Several issues need to be addressed:
+
+1) The instructions say migrated_count is "Number of users successfully migrated" but do not clarify what this means when the script is run multiple times. The instructions must explicitly specify whether migrated_count reflects the number of users migrated in the current run or the total number of users currently holding Argon2id hashes in the database.
+
+2) The tests test_auth_service_starts, test_auth_service_login_with_migrated_hash, test_auth_service_rejects_invalid_password, and test_sha1_backward_compatibility each independently spawn Flask on port 5000, wait 2 seconds, make requests, then terminate. This sequential start/stop can leave the port in TIME_WAIT and cause "port in use" errors. One solution would be to start Flask once in a module-scoped fixture and share it across these tests.
+
+3) The instructions say to "Automatically rehash passwords on successful login when the stored hash uses outdated parameters". Since this is a core requirement, it should have a supporting test case.
+
+================================================================================
+          REVIEW REPORT: Migrate Flask Auth Service from SHA-1 to Argon2id
+================================================================================
+
+Status:        ❌ FAIL
+Task Location: /root/harbor_tasks/tbench-task
+
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+
+This task requires migrating a legacy Flask authentication service from unsalted
+SHA-1 hashing to Argon2id with per-user random salts, configurable parameters,
+automatic rehash-on-login, and a CSV-driven bulk-migration CLI that produces an
+audit report. The oracle solution rewrites both auth_service.py and migrate.py
+via heredocs in solve.sh, runs the migration, and leaves properly hashed records
+in users.json alongside a populated audit.json. The 16-test pytest suite
+validates migration correctness, hash format, config-parameter alignment, unique
+salts, audit consistency, and round-trip Flask authentication — but entirely
+omits any test for the rehash-on-login code path.
+
+================================================================================
+                              CRITICAL ISSUES ❌
 ================================================================================
 
 --------------------------------------------------------------------------------
 1. Rehash-on-Login Behavior Described in Instruction but Never Tested
 --------------------------------------------------------------------------------
 
-File:    tbench-task/instruction.md (lines 10, 37) and
-         tbench-task/tests/test_outputs.py (entire file)
-Problem: Requirements 1 and 4 both explicitly mandate automatic rehashing on
-         login when stored Argon2id parameters differ from current config.
-         The solution implements this via needs_rehash() and the login route.
-         However, no test ever creates the precondition (a user whose
-         Argon2id hash encodes outdated memory_cost/time_cost values) and
-         verifies the hash is updated after a successful login. This means
-         an agent that omits the rehash-on-login logic entirely will still
-         pass all tests.
+File:    tbench-task/tests/test_outputs.py (no corresponding test exists)
+Problem: instruction.md explicitly requires automatic rehashing on successful
+         login when the stored hash uses outdated parameters, but no test in
+         test_outputs.py verifies this behavior. An agent can earn full reward
+         by implementing only migration and ignoring the rehash-on-login path.
 
-Current code:
+Instruction requirement (instruction.md, Requirements §1):
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  # instruction.md line 10 (Requirement 1, bullet 3):                       │
-│  #   "Automatically rehash passwords on successful login when               │
-│  #    the stored hash uses outdated parameters (compare against             │
-│  #    current config)"                                                      │
-│                                                                             │
-│  # tests/test_outputs.py: no test verifies this behavior                   │
+│  Automatically rehash passwords on successful login when the stored hash    │
+│  uses outdated parameters (compare against current config)                  │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Required fix:
+Required fix — add a test such as:
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  def test_rehash_on_login_with_outdated_argon2id_params():                 │
-│      """Verify auth service rehashes Argon2id hash on login when           │
-│      memory_cost or time_cost differ from the current config."""            │
-│      import argon2                                                          │
-│      users_path = Path("/app/users.json")                                  │
-│      users = json.loads(users_path.read_text())                            │
-│      config = json.loads(Path("/app/argon2_config.json").read_text())      │
-│      # Write a hash with stale params for alice                            │
-│      old_hasher = argon2.PasswordHasher(memory_cost=1024, time_cost=1,    │
-│                                          parallelism=1)                    │
-│      users["alice"]["password_hash"] = old_hasher.hash("password123")     │
-│      users_path.write_text(json.dumps(users, indent=2))                   │
-│      # ... start service, POST /login, verify updated hash matches config  │
-│      match = re.search(r'\$m=(\d+),t=(\d+)', new_hash)                    │
-│      assert int(match.group(1)) == config['memory_cost']                  │
-│      assert int(match.group(2)) == config['time_cost']                    │
+│  def test_rehash_on_login_with_outdated_params():                           │
+│      """Verify service updates hash on login when memory_cost or            │
+│      time_cost differ from current config."""                               │
+│      import shutil, argon2 as _a2                                           │
+│      users_path = Path("/app/users.json")                                   │
+│      users = json.loads(users_path.read_text())                             │
+│      # Inject an Argon2id hash with stale params                            │
+│      stale = _a2.PasswordHasher(                                            │
+│          memory_cost=512, time_cost=1, parallelism=4                        │
+│      ).hash("password123")                                                  │
+│      users["alice"]["password_hash"] = stale                                │
+│      users_path.write_text(json.dumps(users, indent=2))                     │
+│      python_cmd = shutil.which("python3") or "python3"                      │
+│      proc = subprocess.Popen([python_cmd, "/app/auth_service.py"],          │
+│          stdout=subprocess.PIPE, stderr=subprocess.PIPE)                    │
+│      try:                                                                   │
+│          time.sleep(2)                                                       │
+│          requests.post("http://localhost:5000/login",                        │
+│              json={"username": "alice", "password": "password123"},         │
+│              timeout=5)                                                     │
+│          updated = json.loads(users_path.read_text())                       │
+│          new_hash = updated["alice"]["password_hash"]                       │
+│          m = re.search(r'\$m=(\d+),t=(\d+)', new_hash)                     │
+│          assert m and int(m.group(1)) == 65536, "Hash not rehashed"         │
+│      finally:                                                               │
+│          proc.terminate(); proc.wait(timeout=5)                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Explanation: Without this test, the rehash-on-login feature is described and
-implemented by the oracle but entirely unverifiable. Any agent solution that
-skips this logic will incorrectly receive full credit.
+Explanation: Rehash-on-login is the most nuanced security feature in this task
+             and the primary reason Argon2id's parameter agility matters. Its
+             absence from the test suite means the requirement is untestable
+             and cannot be rewarded.
 
 ================================================================================
                               WARNINGS ⚠️
 ================================================================================
 
 --------------------------------------------------------------------------------
-1. Leftover Template Marker in solve.sh
+1. Four Test Functions Each Independently Start and Stop Flask on Port 5000
 --------------------------------------------------------------------------------
 
-File:    tbench-task/solution/solve.sh (line 2)
-Problem: Line 2 contains a bare comment placeholder, suggesting the solution
-         was generated from a template that expected a canary string to be
-         inserted but was never completed.
+File:    tbench-task/tests/test_outputs.py (lines ~130, ~175, ~215, ~260)
+Problem: test_auth_service_starts, test_auth_service_login_with_migrated_hash,
+         test_auth_service_rejects_invalid_password, and
+         test_sha1_backward_compatibility each spawn a fresh Flask process,
+         wait 2 seconds for startup, make requests, then terminate — creating
+         four sequential bind/release cycles on the same port with no gap
+         between them, which can cause transient port-in-use failures.
 
-Current approach:
+Current approach: Each test independently manages its own subprocess lifecycle,
+                  relying on a fixed 2-second wait for readiness.
+
+Suggested fix:
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  #!/bin/bash                                                                │
-│  # CANARY_STRING_PLACEHOLDER                                                │
-│  set -euo pipefail                                                          │
+│  import shutil                                                              │
+│  @pytest.fixture(scope="module")                                            │
+│  def flask_service():                                                       │
+│      """Start Flask once for all service-level tests."""                    │
+│      python_cmd = shutil.which("python3") or "python3"                      │
+│      proc = subprocess.Popen([python_cmd, "/app/auth_service.py"],          │
+│          stdout=subprocess.PIPE, stderr=subprocess.PIPE)                    │
+│      time.sleep(2)                                                          │
+│      yield proc                                                             │
+│      proc.terminate(); proc.wait(timeout=5)                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Explanation: A module-scoped fixture starts Flask once and shares it across
+             all dependent tests, eliminating repeated bind/release cycles,
+             reducing total test runtime, and removing the risk of a stale
+             socket from a previous test blocking the next one.
+
+--------------------------------------------------------------------------------
+2. pandas Installed in Dockerfile but Never Used
+--------------------------------------------------------------------------------
+
+File:    tbench-task/environment/Dockerfile (line 14)
+Problem: pandas==2.2.3 is installed as a system-level dependency but is not
+         imported in the starter code (auth_service.py, migrate.py), the oracle
+         solution, or the test suite. It adds ~30 MB and significant build time
+         with no functional purpose, and may mislead agents into believing
+         pandas is the intended approach for CSV parsing.
+
+Current code:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  RUN pip install --no-cache-dir \                                           │
+│      Flask==3.0.0 \                                                         │
+│      argon2-cffi==23.1.0 \                                                  │
+│      pandas==2.2.3                                                          │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 Suggested fix:
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  #!/bin/bash                                                                │
-│  set -euo pipefail                                                          │
+│  RUN pip install --no-cache-dir \                                           │
+│      Flask==3.0.0 \                                                         │
+│      argon2-cffi==23.1.0                                                    │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Explanation: The placeholder is harmless but signals incomplete task
-preparation. It should be removed (or replaced with an actual canary string
-if anti-cheating detection was intended).
+Explanation: The CSV file uses plain comma-separated values with no quoting,
+             and both the starter and oracle code parse it with the stdlib csv
+             module. Removing pandas keeps the image lean and neutral.
+
+================================================================================
+                            OVERALL ASSESSMENT
+================================================================================
+
+This is a realistic, well-motivated security engineering task with detailed
+instructions, properly pinned dependencies throughout, and 16 tests covering
+migration correctness, Argon2id parameter validation, unique salts, audit
+consistency, and round-trip Flask authentication. The critical gap is that
+rehash-on-login — the most nuanced security requirement and explicitly stated
+in the instruction — has no corresponding test, so an agent can earn full
+reward without implementing it. Fixing that test and consolidating the Flask
+fixture would make this a strong task.
+
+Key Strengths:
+  ✓ Detailed, unambiguous instructions with complete data format specification
+    and explicit CSV parsing edge cases (whitespace stripping, empty rows)
+  ✓ 15 of 16 requirements covered by tests; all pinned dependencies; test.sh
+    follows the standard format with correct reward-file handling
+  ✓ Realistic scenario (migrating legacy auth systems) that exercises multiple
+    security-engineering skills simultaneously
+
+Key Weaknesses:
+  ✗ Rehash-on-login behavior stated in instruction has no test coverage,
+    allowing agents to skip the most nuanced requirement entirely
+  ✗ Four independent Flask start/stop cycles on the same port create a
+    fragile test design prone to intermittent port-binding failures
+
+Evaluates: Argon2id password hashing, Flask API development, CSV data
+           processing, security migration patterns
+
+================================================================================
+  RECOMMENDATION: ❌ REQUIRES FIXES
+
+  Add a test for rehash-on-login behavior and remove the unused pandas
+  dependency before use. The task is otherwise well-constructed and ready
+  to evaluate once those fixes are applied.
+================================================================================
+
+
+6a0ecbf1-f2ed-4949-aa94-d3831df33af3
+extract-png-flags-lsb_20260225_193950.zip
+
+================================================================================
+              REVIEW REPORT: Extract Hidden Flags from PNG Images
+                             in Memory Dump
+================================================================================
+
+Status:        ✅ PASS
+Task Location: /root/harbor_tasks/tbench-task
 
 --------------------------------------------------------------------------------
-2. Artifact Directories Included in Task Root
+SUMMARY
 --------------------------------------------------------------------------------
 
-File:    tbench-task/ (root directory)
-Problem: Three directories that are not part of the task definition are
-         present alongside the required files: a root-level app/ directory
-         that duplicates environment/app/, a jobs/ directory from a prior
-         harbor run, and a tbench-task-terminus-2-gpt-5/ directory from an
-         evaluation run. These should not be shipped with the task.
+This task requires the agent to perform memory forensics by carving PNG images
+from a binary memory dump and extracting hidden ASCII flags using LSB
+steganography. The oracle solution correctly implements PNG header/footer
+scanning and RGB-channel LSB extraction via Pillow, producing a formatted
+flags.txt with hexadecimal offsets. The test suite provides 11 test functions
+with strong anti-cheating measures that cross-verify reported offsets against
+the actual memory dump and confirm flags are genuinely extractable from pixel
+data.
 
-Current approach: Task root contains jobs/, tbench-task-terminus-2-gpt-5/,
-and app/ in addition to the required environment/, solution/, and tests/.
+================================================================================
+                              WARNINGS ⚠️
+================================================================================
 
-Suggested fix: Remove the three extraneous directories before submission:
+--------------------------------------------------------------------------------
+1. Non-Standard Data File Location Requires Custom Docker Compose Context
+--------------------------------------------------------------------------------
+
+File:    tbench-task/environment/docker-compose.yaml (lines 6-8)
+         tbench-task/app/ (directory)
+Problem: Task data files (extract_flags.py, memdump.raw) are placed in an
+         app/ directory at the task root rather than inside environment/.
+         To make the Dockerfile's COPY app/ /app/ work, docker-compose.yaml
+         overrides the build context to the task root with
+         context: ${CONTEXT_DIR}/..
+
+Current approach: Data files live at the task root in app/, and the
+                  docker-compose.yaml compensates with a non-standard
+                  parent-directory context path.
+
+Suggested fix:
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  rm -rf harbor_tasks/tbench-task/app/                                      │
-│  rm -rf harbor_tasks/tbench-task/jobs/                                     │
-│  rm -rf harbor_tasks/tbench-task/tbench-task-terminus-2-gpt-5/             │
+│  # Move app/ into environment/:                                             │
+│  #   environment/app/extract_flags.py                                       │
+│  #   environment/app/memdump.raw                                            │
+│                                                                             │
+│  # Then in docker-compose.yaml, use the standard context:                  │
+│  build:                                                                     │
+│    context: ${CONTEXT_DIR}   # default — no override needed                 │
+│                                                                             │
+│  # And in Dockerfile, COPY is unchanged:                                    │
+│  COPY app/ /app/                                                            │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Explanation: Artifact directories bloat the task, may expose internal run
-details, and can confuse reviewers or the harness about what files are
-authoritative.
+Explanation: The skill specifies that data files should reside inside
+environment/. The current setup works correctly—the build context override
+and separate dockerfile: path are valid Docker Compose syntax—but the
+pattern deviates from convention and could confuse future maintainers or
+frameworks that assume CONTEXT_DIR points directly to all build artefacts.
 
 ================================================================================
                              SUGGESTIONS 💡
 ================================================================================
 
 --------------------------------------------------------------------------------
-1. Weak Assertions in Migration Test Functions
+1. AssertionError Can Be Masked in test_carved_images_are_valid_pngs
 --------------------------------------------------------------------------------
 
-File:    tbench-task/tests/test_outputs.py (lines 46, 327)
+File:    tbench-task/tests/test_outputs.py (lines 30-41)
 
-Current approach: Both test_migration_script_runs and test_migration_idempotent
-use a disjunctive assertion that allows the test to pass if the process exits
-non-zero but happens to print "Migration complete" before crashing:
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  assert result.returncode == 0 or "Migration complete" in result.stdout    │
-└─────────────────────────────────────────────────────────────────────────────┘
+Current approach: The format assertion assert img.format == 'PNG' sits inside
+                  the try block. If it fires, the except Exception clause
+                  catches the AssertionError and re-raises with the generic
+                  message "is not a valid PNG image: …", obscuring the real
+                  reason for failure.
 
 Suggested improvement:
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  assert result.returncode == 0, (                                           │
-│      f"Migration script failed: {result.stderr}"                            │
-│  )                                                                          │
+│  for png_file in png_files:                                                 │
+│      try:                                                                   │
+│          img = Image.open(png_file)                                         │
+│          img.verify()                                                       │
+│      except Exception as e:                                                 │
+│          assert False, f"{png_file} is not a valid image: {e}"             │
+│      # Re-open after verify() exhausts the file handle                     │
+│      img2 = Image.open(png_file)                                            │
+│      assert img2.format == 'PNG', f"{png_file} format is {img2.format}"   │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-Rationale: The disjunction provides a false safety net. A script that prints
-"Migration complete" but then raises an unhandled exception would still pass,
-masking real failures. Checking only the exit code is both simpler and stricter.
+Rationale: Separating the verify() exception guard from the format assertion
+           produces clearer failure messages and avoids the anti-pattern of
+           catching AssertionError inside a test helper.
 
 ================================================================================
                             OVERALL ASSESSMENT
 ================================================================================
 
-This is a realistic and well-scoped security engineering task that tests
-meaningful agent capabilities. The instruction is detailed, file formats are
-fully specified, and the oracle solution is non-trivial and correctly
-implemented. However, a core described feature—automatic rehash-on-login for
-outdated Argon2id parameters—is entirely absent from the test suite, meaning
-agents that omit it receive undeserved full credit.
+This is a well-constructed forensics task with realistic scenario design and
+notably strong anti-cheating safeguards. The two anti-cheating tests—one
+verifying offsets point to real PNG headers in the dump, the other confirming
+flags can actually be recovered via LSB pixel extraction—make it difficult to
+shortcut the intended solution path. The single structural deviation (data
+files outside environment/) is cosmetic and does not affect correctness.
 
 Key Strengths:
-  ✓ Detailed, unambiguous instruction with explicit API, file, and hash formats
-  ✓ Well-implemented oracle covering migration, idempotency, and backward compat
-  ✓ Broad test coverage: hash validation, unique salts, audit schema, live login
+  ✓ Excellent anti-cheating tests cross-validating both offset integrity
+    and pixel-level LSB extractability
+  ✓ Clear instructions with explicit flag patterns, format spec, and
+    named expected outputs
+  ✓ All dependencies pinned throughout (Pillow==10.0.0, pytest==8.4.1,
+    pytest-json-ctrf==0.3.5, uv 0.9.5); reward file always written
 
 Key Weaknesses:
-  ✗ Rehash-on-login for outdated Argon2id params described but never tested
-  ✗ Artifact directories and a template placeholder left in the submission
+  ✗ Data files in non-standard app/ location at task root requires a
+    non-conventional docker-compose build context override
+  ✗ Minor test quality issue: AssertionError can be swallowed and
+    re-reported with a less precise message
 
-Evaluates: Password hash migration, Flask service development, CLI tool
-           implementation, security best practices
+Evaluates: Binary parsing and file carving, LSB steganography implementation,
+           memory forensics, Python scripting with Pillow
 
 ================================================================================
-  RECOMMENDATION: ⚠️ NEEDS REVISION
+  RECOMMENDATION: ✅ READY TO USE
 
-  Add a test for the rehash-on-login behavior and remove the artifact
-  directories and placeholder comment before submitting.
+  The task is functionally correct and safe to deploy. Relocating app/ into
+  environment/ (Warning 1) would align the structure with conventions and is
+  recommended before wider distribution.
 ================================================================================
 
 
-configure-openssh-ca-only-proxyjump.zip
-6c7c7951-203c-4cb6-848f-18ce355226c0
-
-**ControlPersist syntax not specified**: Instructions mention "ControlPersist yes" or "ControlPersist 5m" but do not define exact syntax or case. Tests expect specific formats (e.g., "controlpersist yes" or "controlpersist 5m"), leading to consistent failures on ProxyJump/control validation across trials.
-
-**known_hosts format under-specified**: Instructions say to hash `/app/client/known_hosts` but do not define the required hash format or structure for CA entries. Tests enforce specific known_hosts formatting, causing repeated failures when implementations differ.
-
-== arbitrte thru this other feedback as we dont want to iplement things that will kill the task unnessesarily 
-
-## Task Review: `tbench-task`
----
-# Review Report: tbench-task
-
-**Status:** ❌ FAIL
-
-**Task Location:** `/root/harbor_tasks/tbench-task`
-
----
-
-## Summary
-
-This task requires building a FastAPI web server with OpenTelemetry instrumentation that processes user reviews and integrates with a sentiment analysis microservice. The solution implements a Flask-based REST API with proper OpenTelemetry tracing, Jaeger integration, and inter-service communication. The test suite validates tracing configuration, API functionality, span creation, service connectivity, and proper error handling across both services.
-
----
-
-## Critical Issues ❌
-
-1. **Missing Multi-Container Flags in task.toml**
-   - **File:** `tbench-task/task.toml` (metadata section)
-   - **Problem:** The task uses docker-compose.yaml for multi-container orchestration but task.toml is missing the required `is_multi_container` and `custom_docker_compose` flags
-
-   **Current code:**
-   ```toml
-   [metadata]
-   author_name = "anonymous"
-   author_email = "noreply@example.com"
-   difficulty = "hard"
-   category = "software-engineering"
-   tags = ["observability", "opentelemetry", "tracing", "microservices", "api", "flask"]
-   expert_time_estimate_min = 90
-   junior_time_estimate_min = 180
-   ```
-
-   **Required fix:**
-   ```toml
-   [metadata]
-   author_name = "anonymous"
-   author_email = "noreply@example.com"
-   difficulty = "hard"
-   category = "software-engineering"
-   tags = ["observability", "opentelemetry", "tracing", "microservices", "api", "flask"]
-   expert_time_estimate_min = 90
-   junior_time_estimate_min = 180
-   is_multi_container = true
-   custom_docker_compose = true
-   ```
-
-   **Explanation:** Multi-container tasks must explicitly declare these flags so the harness knows to use Docker Compose orchestration instead of a single container.
-
-2. **Hardcoded Environment Variables in docker-compose.yaml**
-   - **File:** `tbench-task/environment/docker-compose.yaml` (multiple locations)
-   - **Problem:** The docker-compose.yaml uses hardcoded values instead of harness-provided environment variables
-
-   **Current code:**
-   ```yaml
-   services:
-     main:
-       build:
-         context: .
-       image: tbench-task:latest
-       volumes:
-         - ./logs/verifier:/logs/verifier
-         - ./logs/agent:/logs/agent
-       deploy:
-         resources:
-           limits:
-             cpus: '2'
-             memory: 4096M
-   ```
-
-   **Required fix:**
-   ```yaml
-   services:
-     main:
-       build:
-         context: ${CONTEXT_DIR}
-       image: ${MAIN_IMAGE_NAME}
-       environment:
-         - TEST_DIR=${TEST_DIR}
-       volumes:
-         - ${HOST_VERIFIER_LOGS_PATH}:${ENV_VERIFIER_LOGS_PATH}
-         - ${HOST_AGENT_LOGS_PATH}:${ENV_AGENT_LOGS_PATH}
-       deploy:
-         resources:
-           limits:
-             cpus: ${CPUS}
-             memory: ${MEMORY}
-   ```
-
-   **Explanation:** Multi-container tasks must use the harness-provided environment variables for build context, image names, volumes, and resource limits to ensure proper integration with the testing framework.
-
-3. **Missing Health Check for sentiment-api Service**
-   - **File:** `tbench-task/environment/docker-compose.yaml` (sentiment-api service)
-   - **Problem:** The sentiment-api service lacks a health check, which could cause race conditions where the main service tries to communicate before sentiment-api is ready
-
-   **Current code:**
-   ```yaml
-   sentiment-api:
-     build:
-       context: .
-       dockerfile: Dockerfile.sentiment
-     image: sentiment-api:latest
-     command:
-       - python3
-       - /app/sentiment_service.py
-     networks:
-       - app-network
-   ```
-
-   **Required fix:**
-   ```yaml
-   sentiment-api:
-     build:
-       context: ${CONTEXT_DIR}
-       dockerfile: Dockerfile.sentiment
-     command:
-       - python3
-       - /app/sentiment_service.py
-     networks:
-       - app-network
-     healthcheck:
-       test:
-         - CMD
-         - python3
-         - -c
-         - import urllib.request; urllib.request.urlopen('http://localhost:5001/health').read()
-       interval: 5s
-       timeout: 3s
-       retries: 10
-       start_period: 10s
-   ```
-
-   **Explanation:** Health checks ensure dependent services are fully operational before the main container starts, preventing connection errors and race conditions.
-
-4. **Missing depends_on Condition in main Service**
-   - **File:** `tbench-task/environment/docker-compose.yaml` (main service)
-   - **Problem:** The main service doesn't explicitly wait for sentiment-api to be healthy before starting
-
-   **Current code:**
-   ```yaml
-   main:
-     build:
-       context: .
-     # ... other config ...
-     networks:
-       - app-network
-   ```
-
-   **Required fix:**
-   ```yaml
-   main:
-     build:
-       context: ${CONTEXT_DIR}
-     # ... other config ...
-     networks:
-       - app-network
-     depends_on:
-       sentiment-api:
-         condition: service_healthy
-   ```
-
-   **Explanation:** The depends_on condition with service_healthy ensures the main container only starts after sentiment-api passes its health check, preventing startup ordering issues.
-
-5. **Missing TEST_DIR Default in test.sh**
-   - **File:** `tbench-task/tests/test.sh` (line 24)
-   - **Problem:** test.sh uses `$TEST_DIR` without providing a default value, which will cause failures on frameworks that don't set this variable
-
-   **Current code:**
-   ```bash
-   python -m pytest "$TEST_DIR/test_outputs.py" -rA -v
-   ```
-
-   **Required fix:**
-   ```bash
-   TEST_DIR="${TEST_DIR:-/tests}"
-   python -m pytest "$TEST_DIR/test_outputs.py" -rA -v
-   ```
-
-   **Explanation:** Terminal-Bench tasks should be portable across different testing frameworks. Providing a default value ensures the task works even when TEST_DIR is not set.
-
-6. **Missing Standard Command for main Service**
-   - **File:** `tbench-task/environment/docker-compose.yaml` (main service)
-   - **Problem:** The main service is missing the standard `sleep infinity` command
-
-   **Current code:**
-   ```yaml
-   main:
-     build:
-       context: .
-     image: tbench-task:latest
-     # Missing command section
-   ```
-
-   **Required fix:**
-   ```yaml
-   main:
-     build:
-       context: ${CONTEXT_DIR}
-     image: ${MAIN_IMAGE_NAME}
-     command:
-       - sh
-       - -c
-       - sleep infinity
-   ```
-
-   **Explanation:** The main container needs to stay running indefinitely so the agent can execute commands inside it. Without this, the container may exit immediately.
-
----
-
-## Warnings ⚠️
-
-1. **Inconsistent Service References in Tests**
-   - **File:** `tbench-task/tests/test_outputs.py` (lines 36, 51, 74, 88)
-   - **Problem:** Tests reference services using different hostnames (`sentiment-api` vs `localhost`) which may cause confusion
-
-   **Current code:**
-   ```python
-   response = requests.get("http://sentiment-api:5001/health", timeout=10)
-   # ... later ...
-   response = requests.get("http://localhost:5001/health", timeout=5)
-   ```
-
-   **Suggested fix:**
-   Use consistent service names throughout. Since tests run in the main container, use the service name from docker-compose:
-   ```python
-   response = requests.get("http://sentiment-api:5001/health", timeout=10)
-   ```
-
-   **Explanation:** Consistent service addressing reduces confusion and potential bugs. Use docker-compose service names for inter-container communication.
-
-2. **Test Could Check for Specific Span Attributes**
-   - **File:** `tbench-task/tests/test_outputs.py` (lines 97-144)
-   - **Problem:** The `test_spans_created` function checks span count and names but doesn't validate span attributes, relationships, or proper parent-child hierarchy
-
-   **Current code:**
-   ```python
-   def test_spans_created():
-       """Test that OpenTelemetry spans are properly created and exported."""
-       # Checks span count and names only
-   ```
-
-   **Suggested fix:**
-   Consider adding checks for:
-   - Span attributes (http.method, http.status_code, etc.)
-   - Parent-child span relationships
-   - Span status (OK vs ERROR)
-
-   **Explanation:** More thorough span validation would better verify proper OpenTelemetry instrumentation implementation.
-
----
-
-## Suggestions 💡
-
-1. **Consider Adding has_custom_cmd Flag**
-   - **File:** `tbench-task/task.toml` (metadata section)
-   - **Current approach:** The task uses `sleep infinity` command for the main container but doesn't declare `has_custom_cmd = true`
-
-   **Rationale:** While the current approach works, adding `has_custom_cmd = true` would make the configuration more explicit and self-documenting for multi-container tasks with custom commands.
-
-2. **Add More Detailed Span Validation**
-   - **File:** `tbench-task/tests/test_outputs.py`
-   - **Current approach:** Tests validate basic span creation but could be more thorough
-
-   **Suggested improvement:**
-   Add tests that verify:
-   - Proper span context propagation across services
-   - Correct span attributes for HTTP requests
-   - Error spans when sentiment-api is unavailable
-   - Sampling configuration
-
-   **Rationale:** Would provide stronger validation of OpenTelemetry best practices and more thoroughly test observability skills.
-
----
-
-## Overall Assessment
-
-This is a well-designed observability task that tests multi-container orchestration, OpenTelemetry instrumentation, and distributed tracing. However, it requires critical fixes to properly integrate with the Terminal-Bench 2.0 harness, particularly around multi-container configuration and environment variable usage.
-
-**Key Strengths:**
-- Realistic microservices architecture with inter-service communication
-- Comprehensive test coverage of tracing, spans, and API functionality
-- Clear and detailed instructions with proper API specifications
-
-**Key Weaknesses:**
-- Missing required multi-container flags and harness environment variables
-- No health check or startup dependency management for services
-- Missing TEST_DIR default value in test.sh
-
-**Evaluates:** OpenTelemetry instrumentation, distributed tracing, multi-container orchestration, REST API development
-
-**Recommendation:** ⚠️ **NEEDS FIXES** - The task has strong fundamentals but requires critical multi-container configuration fixes before it can be used.
----
-<!-- terminal-bench-2-task-reviewer-end -->
-
-Difficulty: ✅ HARD
-
-Status: ✅ Solvable (all tests passed by at least one agent run)
-
-Agent Performance:
-  • terminus-claude-sonnet-4-5: 0.0% (0/5 runs)
-  • terminus-gpt5: 0.0% (0/5 runs)
-
-Reference Agents:
-  • nop: 0.0% (0/1 runs)
-  • oracle: 100.0% (1/1 runs)
-
-Failure Breakdown:
-  • nop: 1 other
-  • terminus-claude-sonnet-4-5: 5 other
-  • terminus-gpt5: 5 other
-
-Unit Tests Results:
-  • test_ca_material_present: 10 passed / 10 runs
-  • test_config_enforces_ca_only: 10 passed / 10 runs
-  • test_known_hosts_hashed_and_ca_listed: 7 passed / 10 runs
-  • test_ssh_and_scp_work: 5 passed / 10 runs
-  • test_raw_key_rejected: 10 passed / 10 runs
-  • test_password_auth_disabled: 10 passed / 10 runs
-  • test_client_configured_for_proxyjump_and_control: 4 passed / 10 runs
-
-Analysis on Agent Failures:
-  • Task Instruction Sufficiency: ❌ FAIL, The instructions lack critical specificity needed for test success. Multiple trials consistently fail on `test_client_configured_for_proxyjump_and_control` because the test expects exact SSH configuration parameter formats ("controlpersist yes" or "controlpersist 5m") that aren't precisely specified in the instruction. The instruction mentions "set `ControlPersist yes` (or `ControlPersist 5m`)" but doesn't clarify the exact syntax or case sensitivity required. Additionally, trials fail on known_hosts formatting where tests expect specific hash formats and certificate authority entries, but instructions only vaguely state to "hash `/app/client/known_hosts`" without specifying the exact format or structure expected. The consistent failure pattern across all 10 trials on the same configuration validation tests indicates systematic specification gaps rather than agent capability issues.
-
-
-  configure-bazel-remote-cache.zip
-  ef6cbf3f-0e61-4515-835f-5147ed8dda16
-
-  - Tasks with docker-compose.yaml to be tagged with `custom_docker_compose = true` in task.toml metadata.
-
-  ## Task Review: `tbench-task`
----
-# Review Report: tbench-task
-
-**Status:** ❌ FAIL
-
-**Task Location:** `/root/harbor_tasks/tbench-task`
-
----
-
-## Summary
-
-This task requires agents to create a Python script that calculates the total weekly hours worked by parsing CSV timesheets and generating a formatted output file. The solution reads CSV data containing employee timesheet entries, aggregates hours worked per employee across the week, and writes results to a text file with specific formatting. The test suite validates the output file's existence, format, content accuracy, and proper handling of the input data.
-
----
-
-## Critical Issues ❌
-
-1. **Missing Shebang in solve.sh**
-   - **File:** `tbench-task/solution/solve.sh` (line 1)
-   - **Problem:** The solution script is missing the required shebang line at the top of the file
-
-   **Current code:**
-   ```bash
-   set -euo pipefail
-   
-   python3 << 'EOF'
-   import csv
-   ```
-
-   **Required fix:**
-   ```bash
-   #!/usr/bin/env bash
-   set -euo pipefail
-   
-   python3 << 'EOF'
-   import csv
-   ```
-
-   **Explanation:** All bash scripts must start with a shebang to specify the interpreter. This is a critical requirement for portability and proper execution.
-
-2. **Missing Shebang in test.sh**
-   - **File:** `tbench-task/tests/test.sh` (line 1)
-   - **Problem:** The test runner script is missing the required shebang line
-
-   **Current code:**
-   ```bash
-   set -euo pipefail
-   
-   apt-get update
-   ```
-
-   **Required fix:**
-   ```bash
-   #!/bin/bash
-   set -euo pipefail
-   
-   apt-get update
-   ```
-
-   **Explanation:** The shebang is mandatory for test.sh to ensure proper execution by the harness.
-
-3. **Invalid Category in task.toml**
-   - **File:** `tbench-task/task.toml` (line 6)
-   - **Problem:** The category "automation" is not a valid Terminal-Bench 2.0 category
-
-   **Current code:**
-   ```toml
-   category = "automation"
-   ```
-
-   **Required fix:**
-   ```toml
-   category = "data-processing"
-   ```
-
-   **Explanation:** The task involves parsing CSV data and aggregating information, which clearly falls under the "data-processing" category. Valid categories are: software-engineering, data-processing, security, machine-learning, debugging, games, system-administration, build-and-dependency-management, and scientific-computing.
-
-4. **Missing TEST_DIR Default Value**
-   - **File:** `tbench-task/tests/test.sh` (line 19)
-   - **Problem:** The test script uses `$TEST_DIR` environment variable without providing a default value, which may cause failures on non-harbor frameworks
-
-   **Current code:**
-   ```bash
-   uv run pytest "$TEST_DIR/test_outputs.py" -rA
-   ```
-
-   **Required fix:**
-   ```bash
-   TEST_DIR="${TEST_DIR:-/tests}"
-   uv run pytest "$TEST_DIR/test_outputs.py" -rA
-   ```
-
-   **Explanation:** Environment variables must have default values to ensure compatibility across different evaluation frameworks. The harness provides TEST_DIR, but other frameworks may not.
-
----
-
-## Warnings ⚠️
-
-1. **Brief Task Instructions**
-   - **File:** `tbench-task/instruction.md`
-   - **Problem:** While the instructions are clear, they could benefit from more context about the business scenario and additional examples
-
-   **Current approach:** The instruction provides requirements but minimal context about why this task matters or real-world usage
-
-   **Suggested improvement:**
-   Add a scenario section:
-   ```markdown
-   ## Scenario
-   
-   You're building an automation tool for a small business that needs to calculate weekly payroll from employee timesheets. The HR department exports timesheet data as CSV files, and your tool must parse these files and generate summary reports.
-   ```
-
-   **Rationale:** Adding context makes the task more realistic and helps agents understand the purpose and constraints better.
-
-2. **Missing Expert Time Estimates**
-   - **File:** `tbench-task/task.toml` (metadata section)
-   - **Problem:** The task.toml doesn't include recommended expert_time_estimate_min and junior_time_estimate_min fields
-
-   **Current code:**
-   ```toml
-   [metadata]
-   author_name = "Harbor Team"
-   author_email = "harbor@example.com"
-   difficulty = "easy"
-   category = "automation"
-   tags = ["python", "csv", "data-processing"]
-   ```
-
-   **Suggested fix:**
-   ```toml
-   [metadata]
-   author_name = "Harbor Team"
-   author_email = "harbor@example.com"
-   difficulty = "easy"
-   category = "data-processing"
-   tags = ["python", "csv", "data-processing"]
-   expert_time_estimate_min = 10.0
-   junior_time_estimate_min = 20.0
-   ```
-
-   **Explanation:** Time estimates help calibrate task difficulty and provide benchmarks for evaluation. For an "easy" CSV processing task, 10-20 minutes seems appropriate.
-
----
-
-## Suggestions 💡
-
-1. **Enhanced Test Docstrings**
-   - **File:** `tbench-task/tests/test_outputs.py` (various test functions)
-   - **Current approach:** Test docstrings are present but could be more descriptive about what specific behavior is being validated
-
-   **Current code:**
-   ```python
-   def test_output_file_exists():
-       """Test that the output file exists."""
-       assert output_path.exists(), "Output file weekly_hours.txt was not created"
-   ```
-
-   **Suggested improvement:**
-   ```python
-   def test_output_file_exists():
-       """Test that the weekly_hours.txt output file is created in the /app directory after processing timesheets."""
-       assert output_path.exists(), "Output file weekly_hours.txt was not created"
-   ```
-
-   **Rationale:** More detailed docstrings improve test readability and make it clearer what specific requirement or behavior is being validated.
-
-2. **Add Edge Case Documentation**
-   - **File:** `tbench-task/instruction.md`
-   - **Current approach:** Instructions don't explicitly mention how to handle edge cases like empty files or employees with zero hours
-
-   **Suggested improvement:**
-   Add an "Edge Cases" section:
-   ```markdown
-   ### Edge Cases to Consider
-   
-   - Employees may appear multiple times in the CSV (aggregate their hours)
-   - Hours should be formatted to 2 decimal places
-   - Output should be sorted alphabetically by employee name
-   - Handle CSV files with proper headers
-   ```
-
-   **Rationale:** Explicitly documenting edge cases helps agents understand the full scope of requirements and reduces ambiguity.
-
----
-
-## Overall Assessment
-
-This is a well-structured beginner-level task that tests fundamental data processing skills through CSV parsing and file manipulation. The task is realistic, clearly specified, and has good test coverage for an easy difficulty level.
-
-**Key Strengths:**
-- Clear, unambiguous requirements with specific output format expectations
-- Comprehensive test coverage including file existence, format validation, and data accuracy
-- Appropriate difficulty level with realistic CSV processing scenario
-
-**Key Weaknesses:**
-- Missing required shebangs in both solve.sh and test.sh (critical)
-- Invalid category specification in task.toml (critical)
-- Missing TEST_DIR default value in test.sh (critical)
-
-**Evaluates:** CSV parsing, data aggregation, file I/O, string formatting
-
-**Recommendation:** ❌ **NEEDS FIXES** - Address the 4 critical issues (add shebangs to both scripts, fix category to "data-processing", and add TEST_DIR default value), then the task will be ready to use.
----
-<!-- terminal-bench-2-task-reviewer-end -->
-
+97a311a8-814e-445a-8cd9-9df3e920c5df
+
+dep-bumper-cli_20260225_200710.zip
+
+
+================================================================================
+                REVIEW REPORT: Interactive Dependency Bumper CLI
+================================================================================
+
+Status:        ❌ FAIL
+Task Location: /root/harbor_tasks/tbench-task
+
+--------------------------------------------------------------------------------
+SUMMARY
+--------------------------------------------------------------------------------
+
+This task challenges agents to fix a broken dep_bumper.py CLI tool that
+manages dependency updates across npm and PyPI ecosystems, supporting
+interactive package selection, version bumping, lockfile regeneration, and
+conventional commit summary generation. The oracle solution overwrites the
+broken implementation with a correct Python script that handles all required
+behaviors. The test suite validates the CLI's existence, stdout progress
+messages, file modifications, and commit summary format—but contains a
+critical behavior mismatch and reliability issues stemming from its
+dependence on runtime package outdatedness.
+
+================================================================================
+                             CRITICAL ISSUES ❌
+================================================================================
+
+--------------------------------------------------------------------------------
+1. "Regenerating Lockfiles" Print Statement Tested but Not in Instruction
+--------------------------------------------------------------------------------
+
+File:    tbench-task/tests/test_outputs.py (~lines 155-158)
+Problem: test_cli_regenerates_lockfiles asserts that "Regenerating lockfiles"
+         appears in stdout, but instruction.md only explicitly lists four
+         required print statements: "Reading dependency files", "Checking
+         for outdated packages", "Updating dependency files", and "Done!".
+         Step 5 (Regenerate lockfiles) specifies no print requirement. An
+         agent following the spec precisely would not necessarily emit this
+         message and would fail this test.
+
+Current code:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  assert "Regenerating lockfiles" in result.stdout, (                        │
+│      f"CLI should regenerate lockfiles. Output: {result.stdout}..."         │
+│  )                                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Required fix:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  # Add to instruction.md step 5:                                            │
+│  Print `Regenerating lockfiles` before running npm install / pip-compile    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Explanation: The instruction explicitly enumerates every required print
+statement in steps 1, 2, 4, and 7—but step 5 is silent on output. Adding
+"Print `Regenerating lockfiles` before regenerating lockfiles" to step 5
+closes the gap and ensures agents following the spec will satisfy the test.
+
+================================================================================
+                              WARNINGS ⚠️
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Tests Silently Skip Core Validations When No Outdated Packages Found
+--------------------------------------------------------------------------------
+
+File:    tbench-task/tests/test_outputs.py (multiple test functions)
+Problem: test_cli_updates_package_json, test_cli_updates_requirements_txt,
+         test_cli_regenerates_lockfiles, and test_cli_generates_commit_summary
+         each call npm outdated or pip list --outdated at test runtime and
+         fall back to a trivial "CLI exits without crash" assertion when no
+         outdated packages are detected. If network access is unavailable
+         or the installed versions happen to match registry latest, these
+         tests pass vacuously without validating any update behavior.
+
+Current approach: A has_outdated boolean gates the real assertions; the
+         else branch accepts `result.returncode == 0` or any stdout
+         containing "No outdated packages" as a pass.
+
+Suggested fix: Pre-download a frozen npm registry snapshot (e.g., via
+         verdaccio) and a PyPI index stub into the Docker image, or pin
+         package.json and requirements.txt to versions guaranteed to be
+         behind a bundled "latest" metadata cache. This makes outdatedness
+         deterministic regardless of network state at test time.
+
+Explanation: The task's correctness guarantee must not depend on external
+         registry availability. Deterministic outdated state ensures the
+         conditional validation paths are always exercised.
+
+--------------------------------------------------------------------------------
+2. Multiple Tests Mutate Shared Files Without Isolation Fixtures
+--------------------------------------------------------------------------------
+
+File:    tbench-task/tests/test_outputs.py (multiple test functions)
+Problem: test_cli_updates_package_json, test_cli_updates_requirements_txt,
+         test_cli_regenerates_lockfiles, and test_cli_generates_commit_summary
+         each invoke `python3 dep_bumper.py` with "all\n" input, modifying
+         /app/package.json, /app/requirements.txt, and running npm install.
+         After the first such test succeeds, later tests' npm outdated and
+         pip list --outdated checks may return no outdated packages (versions
+         now match latest), silently routing them into the trivial fallback
+         assertion path.
+
+Current approach: Each test function independently launches the full CLI
+         and relies on shared on-disk file state with no teardown.
+
+Suggested fix:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  import shutil, pytest                                                      │
+│                                                                             │
+│  @pytest.fixture(autouse=True)                                              │
+│  def restore_app_files():                                                   │
+│      shutil.copy("/app/package.json", "/tmp/pkg_backup.json")               │
+│      shutil.copy("/app/requirements.txt", "/tmp/req_backup.txt")            │
+│      yield                                                                  │
+│      shutil.copy("/tmp/pkg_backup.json", "/app/package.json")               │
+│      shutil.copy("/tmp/req_backup.txt", "/app/requirements.txt")            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Explanation: An autouse fixture that saves and restores the original
+         dependency files ensures every test starts from an identical
+         known state, eliminating order-dependent failures.
+
+================================================================================
+                             SUGGESTIONS 💡
+================================================================================
+
+--------------------------------------------------------------------------------
+1. Regex in test_commit_summary_format Won't Match Hyphenated Package Names
+--------------------------------------------------------------------------------
+
+File:    tbench-task/tests/test_outputs.py (~line 195)
+
+Current approach: The pattern r"-\s+\w+:\s+\S+\s+->\s+\S+" uses \w+ for
+the package name, matching only [a-zA-Z0-9_]. Common npm packages such as
+cross-env, is-odd, and @scope/package contain hyphens or @ characters and
+would not match, causing a false negative despite a correctly formatted
+commit summary.
+
+Suggested improvement:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  # Replace \w+ with a pattern covering hyphens and scoped packages         │
+│  update_pattern = r"-\s+[\w@][\w./@-]*:\s+\S+\s+->\s+\S+"                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Rationale: The current test data (express, lodash, requests, flask) avoids
+hyphens, so this is latent rather than immediately broken. Widening the
+character class makes the test robust to realistic npm package names.
+
+================================================================================
+                            OVERALL ASSESSMENT
+================================================================================
+
+The task presents a realistic and engaging "fix the broken code" challenge
+with thorough instructions, a legitimate oracle solution that computes
+rather than hardcodes answers, and a Dockerfile that correctly isolates
+task data from tests and solution. However, a critical behavior mismatch—a
+print statement required by tests but absent from the instruction—means
+an agent that faithfully follows the spec will fail. Combined with
+environment-dependent conditional test logic and shared mutable file
+state across tests, the suite's reliability needs attention before use.
+
+Key Strengths:
+  ✓ Detailed instruction with explicit stdout requirements, a concrete
+    commit-summary format example, and thorough constraint definitions
+  ✓ Oracle solution genuinely fixes real bugs via computation, not a
+    hardcoded output
+  ✓ Dockerfile correctly pins Node.js and pip-tools versions and does
+    not leak tests or solution into the image
+
+Key Weaknesses:
+  ✗ "Regenerating lockfiles" print tested but undescribed in instruction
+    creates a guaranteed agent failure path
+  ✗ Core test assertions are conditionally gated on runtime package
+    outdatedness, making validation environment-dependent
+  ✗ No test isolation fixtures; cross-test file mutation risks
+    order-dependent, unreliable results
+
+Evaluates: CLI debugging and bug comprehension, cross-ecosystem dependency
+           management (npm + PyPI), lockfile tooling, conventional commits
+
+================================================================================
+  RECOMMENDATION: ❌ REQUIRES FIXES
+
+  Add "Print `Regenerating lockfiles`" to step 5 of instruction.md to
+  resolve the critical behavior mismatch, then add autouse fixtures for
+  test isolation and deterministic outdated-package state to ensure
+  reliable evaluation across environments.
+================================================================================
